@@ -16,8 +16,8 @@
   "scripts": {
     "prepare": "husky",
     "dev": "pnpm install && pnpm prepare",
-    "lint": "eslint packages --ext .ts,.tsx,.js,.jsx",
-    "lint:fix": "eslint packages --ext .ts,.tsx,.js,.jsx --fix",
+    "lint": "eslint \"scripts/**/*.{js,mjs}\"",
+    "lint:fix": "eslint \"scripts/**/*.{js,mjs}\" --fix",
     "format": "prettier --write \"scripts/**/*.{js,mjs}\" \"*.{json,md,yaml,yml}\"",
     "format:check": "prettier --check \"scripts/**/*.{js,mjs}\" \"*.{json,md,yaml,yml}\"",
     "test:e2e": "playwright test",
