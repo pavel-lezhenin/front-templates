@@ -95,26 +95,26 @@ See [docs/VERSIONING.md](docs/VERSIONING.md) for details.
 
 ## 📋 Defaults
 
-|               | React              | Angular           |
-| ------------- | ------------------ | ----------------- |
-| Build         | Vite               | Angular CLI       |
-| Styling       | Tailwind           | SCSS              |
-| State         | Zustand            | Signals           |
-| Server State  | TanStack Query     | HttpClient        |
-| Forms         | RHF + Zod          | Reactive Forms    |
-| Testing       | Jest + RTL         | Jest              |
-| E2E           | Playwright         | Playwright        |
+|              | React          | Angular        |
+| ------------ | -------------- | -------------- |
+| Build        | Vite           | Angular CLI    |
+| Styling      | Tailwind       | SCSS           |
+| State        | Zustand        | Signals        |
+| Server State | TanStack Query | HttpClient     |
+| Forms        | RHF + Zod      | Reactive Forms |
+| Testing      | Jest + RTL     | Jest           |
+| E2E          | Playwright     | Playwright     |
 
 ## 🤖 AI Agents
 
 Specialized agents for code review and architecture validation:
 
-| Agent         | Responsibility                              |
-| ------------- | ------------------------------------------- |
-| **Architect** | Structure, layers, dependencies             |
-| **Developer** | Code quality, TypeScript, SOLID             |
-| **Tester**    | Coverage, test quality, E2E strategy        |
-| **Design**    | UI consistency, tokens, accessibility       |
+| Agent         | Responsibility                        |
+| ------------- | ------------------------------------- |
+| **Architect** | Structure, layers, dependencies       |
+| **Developer** | Code quality, TypeScript, SOLID       |
+| **Tester**    | Coverage, test quality, E2E strategy  |
+| **Design**    | UI consistency, tokens, accessibility |
 
 See [docs/agents/](docs/agents/) for agent definitions.
 
@@ -147,13 +147,15 @@ See [docs/agents/](docs/agents/) for agent definitions.
 ## 🤖 CI/CD & Automation
 
 ### Pull Request Automation
+
 - **System-level PR creation** — Automatic PR generation from feature branches
-- **Submodule coordination** — Integrated CI across monorepo packages  
+- **Submodule coordination** — Integrated CI across monorepo packages
 - **Security validation** — Automated security and dependency checks
 
 See [docs/ci/PR_AUTOMATION.md](docs/ci/PR_AUTOMATION.md) for complete workflow details.
 
 ### Git Workflow
+
 ```bash
 # ⚠️ STRICT: Never work directly in main branch
 git checkout -b feature/your-feature
@@ -172,6 +174,7 @@ All packages include mandatory security checks:
 ## 🗺️ Status & Roadmap
 
 ### ✅ Completed
+
 - [x] Repository structure & monorepo setup
 - [x] Comprehensive documentation & best practices
 - [x] AI agents for code quality & architecture
@@ -181,10 +184,12 @@ All packages include mandatory security checks:
 - [x] TypeScript strict mode configuration
 
 ### 🚧 In Progress
+
 - [ ] angular-standalone-starter
 - [ ] react-modular-starter
 
 ### 📅 Planned
+
 - [ ] Web3 templates (wagmi, viem)
 - [ ] Micro-frontend templates
 - [ ] Next.js SSR templates

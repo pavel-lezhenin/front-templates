@@ -34,17 +34,17 @@ src/
 
 ## Stack Defaults
 
-| Concern | Library |
-|---------|---------|
-| Build | Vite |
-| Styling | Tailwind CSS |
-| Client State | Zustand |
-| Server State | TanStack Query |
-| Forms | React Hook Form + Zod |
-| Routing | React Router v6 |
-| Testing | Vitest + RTL |
-| E2E | Playwright |
-| Mocking | MSW |
+| Concern      | Library               |
+| ------------ | --------------------- |
+| Build        | Vite                  |
+| Styling      | Tailwind CSS          |
+| Client State | Zustand               |
+| Server State | TanStack Query        |
+| Forms        | React Hook Form + Zod |
+| Routing      | React Router v6       |
+| Testing      | Vitest + RTL          |
+| E2E          | Playwright            |
+| Mocking      | MSW                   |
 
 ## Component Patterns
 
@@ -72,11 +72,7 @@ interface ProductCardProps {
   variant?: 'default' | 'compact';
 }
 
-export function ProductCard({ 
-  product, 
-  onAddToCart,
-  variant = 'default' 
-}: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, variant = 'default' }: ProductCardProps) {
   // ...
 }
 ```
@@ -101,7 +97,7 @@ Card.Body = function CardBody({ children }: { children: ReactNode }) {
 <Card>
   <Card.Header>Title</Card.Header>
   <Card.Body>Content</Card.Body>
-</Card>
+</Card>;
 ```
 
 ## Hooks Patterns
@@ -135,9 +131,9 @@ export function useProduct(id: string) {
 // Cleanup required
 useEffect(() => {
   const controller = new AbortController();
-  
+
   fetchData({ signal: controller.signal });
-  
+
   return () => controller.abort();
 }, []);
 
@@ -146,7 +142,7 @@ useEffect(() => {
   const handler = (e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
   };
-  
+
   document.addEventListener('keydown', handler);
   return () => document.removeEventListener('keydown', handler);
 }, [onClose]);
@@ -159,19 +155,19 @@ useEffect(() => {
 ```tsx
 // Memo for expensive renders
 const ExpensiveList = memo(function ExpensiveList({ items }: Props) {
-  return items.map(item => <ExpensiveItem key={item.id} item={item} />);
+  return items.map((item) => <ExpensiveItem key={item.id} item={item} />);
 });
 
 // useMemo for expensive calculations
-const sortedItems = useMemo(
-  () => items.slice().sort((a, b) => a.price - b.price),
-  [items]
-);
+const sortedItems = useMemo(() => items.slice().sort((a, b) => a.price - b.price), [items]);
 
 // useCallback for stable references
-const handleClick = useCallback((id: string) => {
-  dispatch({ type: 'SELECT', id });
-}, [dispatch]);
+const handleClick = useCallback(
+  (id: string) => {
+    dispatch({ type: 'SELECT', id });
+  },
+  [dispatch]
+);
 ```
 
 ### Code Splitting
@@ -216,9 +212,9 @@ describe('ProductCard', () => {
   it('calls onAddToCart when button clicked', async () => {
     const onAddToCart = vi.fn();
     render(<ProductCard product={mockProduct} onAddToCart={onAddToCart} />);
-    
+
     await userEvent.click(screen.getByRole('button', { name: /add to cart/i }));
-    
+
     expect(onAddToCart).toHaveBeenCalledWith(mockProduct);
   });
 });
@@ -241,9 +237,11 @@ describe('useProduct', () => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.product).toEqual(expect.objectContaining({
-      id: '123',
-    }));
+    expect(result.current.product).toEqual(
+      expect.objectContaining({
+        id: '123',
+      })
+    );
   });
 });
 ```

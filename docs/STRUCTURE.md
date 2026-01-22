@@ -137,11 +137,11 @@ docs/
 
 Node.js ESM automation scripts:
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| `check-branch.mjs` | husky pre-commit | Prevents commits to main |
-| `create-package.mjs` | `pnpm new <name>` | Scaffolds new package |
-| `submodule-add.mjs` | `pnpm submodule:add <url> <name>` | Adds git submodule |
+| Script               | Command                           | Description              |
+| -------------------- | --------------------------------- | ------------------------ |
+| `check-branch.mjs`   | husky pre-commit                  | Prevents commits to main |
+| `create-package.mjs` | `pnpm new <name>`                 | Scaffolds new package    |
+| `submodule-add.mjs`  | `pnpm submodule:add <url> <name>` | Adds git submodule       |
 
 ## Independence Principle
 

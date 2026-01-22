@@ -171,7 +171,7 @@ apiClient.interceptors.response.use(
         const refreshToken = tokenStorage.getRefreshToken();
         const { accessToken } = await authApi.refresh(refreshToken);
         tokenStorage.setAccessToken(accessToken);
-        
+
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return apiClient(originalRequest);
       } catch {
@@ -197,7 +197,7 @@ import { tap } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private userSignal = signal<User | null>(null);
-  
+
   user = this.userSignal.asReadonly();
   isAuthenticated = computed(() => !!this.userSignal());
 
@@ -207,13 +207,12 @@ export class AuthService {
   ) {}
 
   login(email: string, password: string) {
-    return this.http.post<LoginResponse>('/api/auth/login', { email, password })
-      .pipe(
-        tap(({ accessToken, user }) => {
-          localStorage.setItem('access_token', accessToken);
-          this.userSignal.set(user);
-        })
-      );
+    return this.http.post<LoginResponse>('/api/auth/login', { email, password }).pipe(
+      tap(({ accessToken, user }) => {
+        localStorage.setItem('access_token', accessToken);
+        this.userSignal.set(user);
+      })
+    );
   }
 
   logout() {
@@ -227,11 +226,11 @@ export class AuthService {
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  
+
   if (auth.isAuthenticated()) {
     return true;
   }
-  
+
   return router.createUrlTree(['/login']);
 };
 ```

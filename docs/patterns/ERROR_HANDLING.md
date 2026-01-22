@@ -81,9 +81,7 @@ export class NetworkError extends Error {
 }
 
 export class ValidationError extends ApiError {
-  constructor(
-    public readonly fields: Record<string, string[]>
-  ) {
+  constructor(public readonly fields: Record<string, string[]>) {
     super(400, 'VALIDATION_ERROR', 'Validation failed', { fields });
     this.name = 'ValidationError';
   }
@@ -133,18 +131,16 @@ export const queryClient = new QueryClient({
 import { FieldErrors, FieldValues } from 'react-hook-form';
 import { ValidationError } from '@/shared/api';
 
-export function mapApiErrorsToForm<T extends FieldValues>(
-  error: ValidationError
-): FieldErrors<T> {
+export function mapApiErrorsToForm<T extends FieldValues>(error: ValidationError): FieldErrors<T> {
   const errors: Record<string, { type: string; message: string }> = {};
-  
+
   for (const [field, messages] of Object.entries(error.fields)) {
     errors[field] = {
       type: 'server',
       message: messages[0] ?? 'Invalid value',
     };
   }
-  
+
   return errors as FieldErrors<T>;
 }
 ```
@@ -160,7 +156,7 @@ import { ToastService } from '@/shared/ui';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toast = inject(ToastService);
-  
+
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status === 401) {
@@ -168,7 +164,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       } else if (error.status >= 500) {
         toast.error('Server error. Please try again later.');
       }
-      
+
       return throwError(() => error);
     })
   );

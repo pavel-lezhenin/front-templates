@@ -10,27 +10,26 @@ Type-safe forms with React Hook Form + Zod validation.
 // src/features/user/model/user-schema.ts
 import { z } from 'zod';
 
-export const userSchema = z.object({
-  email: z
-    .string()
-    .min(1, 'Email is required')
-    .email('Invalid email format'),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain uppercase letter')
-    .regex(/[0-9]/, 'Password must contain number'),
-  confirmPassword: z.string(),
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  age: z.coerce.number().min(18, 'Must be 18 or older').optional(),
-  role: z.enum(['admin', 'user', 'guest']),
-  acceptTerms: z.literal(true, {
-    errorMap: () => ({ message: 'You must accept the terms' }),
-  }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+export const userSchema = z
+  .object({
+    email: z.string().min(1, 'Email is required').email('Invalid email format'),
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(/[A-Z]/, 'Password must contain uppercase letter')
+      .regex(/[0-9]/, 'Password must contain number'),
+    confirmPassword: z.string(),
+    name: z.string().min(2, 'Name must be at least 2 characters'),
+    age: z.coerce.number().min(18, 'Must be 18 or older').optional(),
+    role: z.enum(['admin', 'user', 'guest']),
+    acceptTerms: z.literal(true, {
+      errorMap: () => ({ message: 'You must accept the terms' }),
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 export type UserFormData = z.infer<typeof userSchema>;
 ```
@@ -78,12 +77,7 @@ export function UserForm({ onSubmit, defaultValues }: UserFormProps) {
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
-      <Input
-        label="Email"
-        type="email"
-        error={errors.email?.message}
-        {...register('email')}
-      />
+      <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
 
       <Input
         label="Password"
@@ -99,24 +93,11 @@ export function UserForm({ onSubmit, defaultValues }: UserFormProps) {
         {...register('confirmPassword')}
       />
 
-      <Input
-        label="Name"
-        error={errors.name?.message}
-        {...register('name')}
-      />
+      <Input label="Name" error={errors.name?.message} {...register('name')} />
 
-      <Input
-        label="Age"
-        type="number"
-        error={errors.age?.message}
-        {...register('age')}
-      />
+      <Input label="Age" type="number" error={errors.age?.message} {...register('age')} />
 
-      <Select
-        label="Role"
-        error={errors.role?.message}
-        {...register('role')}
-      >
+      <Select label="Role" error={errors.role?.message} {...register('role')}>
         <option value="user">User</option>
         <option value="admin">Admin</option>
         <option value="guest">Guest</option>
@@ -192,15 +173,8 @@ function OrderForm() {
     <form>
       {fields.map((field, index) => (
         <div key={field.id}>
-          <Input
-            label="Product"
-            {...register(`items.${index}.product`)}
-          />
-          <Input
-            label="Quantity"
-            type="number"
-            {...register(`items.${index}.quantity`)}
-          />
+          <Input label="Product" {...register(`items.${index}.product`)} />
+          <Input label="Quantity" type="number" {...register(`items.${index}.quantity`)} />
           <Button type="button" onClick={() => remove(index)}>
             Remove
           </Button>
@@ -235,7 +209,7 @@ import { CommonModule } from '@angular/common';
           <span class="error">Email is required</span>
         }
       </div>
-      
+
       <button type="submit" [disabled]="form.invalid || isSubmitting">
         {{ isSubmitting ? 'Submitting...' : 'Submit' }}
       </button>
@@ -244,7 +218,7 @@ import { CommonModule } from '@angular/common';
 })
 export class UserFormComponent {
   private fb = inject(FormBuilder);
-  
+
   submitted = output<UserFormData>();
   isSubmitting = false;
 

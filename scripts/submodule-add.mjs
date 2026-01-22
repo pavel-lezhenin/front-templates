@@ -12,7 +12,9 @@ const name = args[1];
 
 if (!url || !name) {
   console.error('Usage: pnpm submodule:add <git-url> <package-name>');
-  console.error('Example: pnpm submodule:add https://github.com/org/react-fsd-starter react-fsd-starter');
+  console.error(
+    'Example: pnpm submodule:add https://github.com/org/react-fsd-starter react-fsd-starter'
+  );
   process.exit(1);
 }
 

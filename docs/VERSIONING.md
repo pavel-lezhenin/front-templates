@@ -19,15 +19,15 @@ v{semver}-{framework}{major}
 
 ### Examples
 
-| Tag               | Description                    |
-| ----------------- | ------------------------------ |
-| `v1.0.0-react18`  | Initial release for React 18   |
-| `v1.1.0-react18`  | Bugfix for React 18            |
-| `v1.2.0-react18`  | Feature for React 18           |
-| `v2.0.0-react19`  | Migration to React 19          |
-| `v2.1.0-react19`  | Feature for React 19           |
-| `v1.0.0-angular17`| Initial release for Angular 17 |
-| `v2.0.0-angular18`| Migration to Angular 18        |
+| Tag                | Description                    |
+| ------------------ | ------------------------------ |
+| `v1.0.0-react18`   | Initial release for React 18   |
+| `v1.1.0-react18`   | Bugfix for React 18            |
+| `v1.2.0-react18`   | Feature for React 18           |
+| `v2.0.0-react19`   | Migration to React 19          |
+| `v2.1.0-react19`   | Feature for React 19           |
+| `v1.0.0-angular17` | Initial release for Angular 17 |
+| `v2.0.0-angular18` | Migration to Angular 18        |
 
 ## Branch Strategy
 
@@ -57,11 +57,11 @@ Every package README includes:
 ```markdown
 ## Compatibility
 
-| Version | Framework  | Status           |
-| ------- | ---------- | ---------------- |
-| v2.x    | React 19   | 🟢 Active        |
-| v1.x    | React 18   | 🟡 Maintenance   |
-| v0.x    | React 17   | 🔴 Deprecated    |
+| Version | Framework | Status         |
+| ------- | --------- | -------------- |
+| v2.x    | React 19  | 🟢 Active      |
+| v1.x    | React 18  | 🟡 Maintenance |
+| v0.x    | React 17  | 🔴 Deprecated  |
 
 ### Status Legend
 
@@ -125,13 +125,13 @@ git checkout v1.x-react18
 
 ## Semver Guidelines
 
-| Change Type        | Version Bump | Example           |
-| ------------------ | ------------ | ----------------- |
-| Breaking change    | Major        | v1.0.0 → v2.0.0   |
-| Framework upgrade  | Major        | v1.0.0 → v2.0.0   |
-| New feature        | Minor        | v1.0.0 → v1.1.0   |
-| Bug fix            | Patch        | v1.0.0 → v1.0.1   |
-| Security fix       | Patch        | v1.0.0 → v1.0.1   |
+| Change Type       | Version Bump | Example         |
+| ----------------- | ------------ | --------------- |
+| Breaking change   | Major        | v1.0.0 → v2.0.0 |
+| Framework upgrade | Major        | v1.0.0 → v2.0.0 |
+| New feature       | Minor        | v1.0.0 → v1.1.0 |
+| Bug fix           | Patch        | v1.0.0 → v1.0.1 |
+| Security fix      | Patch        | v1.0.0 → v1.0.1 |
 
 ## CI Integration
 

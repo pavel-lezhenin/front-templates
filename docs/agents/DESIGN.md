@@ -175,24 +175,19 @@ Button.displayName = 'Button';
 // ✅ GOOD: Modal focus trap
 function Modal({ isOpen, onClose, children }) {
   const modalRef = useRef<HTMLDivElement>(null);
-  
+
   useEffect(() => {
     if (isOpen) {
       const previousFocus = document.activeElement as HTMLElement;
       modalRef.current?.focus();
-      
+
       return () => previousFocus?.focus();
     }
   }, [isOpen]);
-  
+
   return (
     <FocusTrap active={isOpen}>
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        tabIndex={-1}
-      >
+      <div ref={modalRef} role="dialog" aria-modal="true" tabIndex={-1}>
         {children}
         <button onClick={onClose}>Close</button>
       </div>
@@ -268,32 +263,38 @@ export const WithIcons: Story = {
 ## Design Review: {Component Name}
 
 ### Token Compliance
+
 - [ ] Uses semantic color tokens
 - [ ] Uses spacing scale
 - [ ] Uses typography scale
 - [ ] No magic numbers
 
 ### Accessibility
+
 - [ ] Keyboard operable
 - [ ] Focus visible
 - [ ] ARIA correct
 - [ ] Color contrast OK
 
 ### API Design
+
 - [ ] Props typed
 - [ ] Good defaults
 - [ ] Composable
 - [ ] ForwardRef
 
 ### Documentation
+
 - [ ] Stories exist
 - [ ] Variants covered
 - [ ] Props documented
 
 ### Issues Found
+
 - {Issue description}
 
 ### Recommendations
+
 1. {Improvement}
 
 ### Verdict: APPROVE / REQUEST_CHANGES

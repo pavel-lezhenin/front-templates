@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+coverage/
+.turbo/
+packages/
+docs/
+templates/
+*.lock
+*.log
+.git/
+.github/
+.env*
+!.env.example

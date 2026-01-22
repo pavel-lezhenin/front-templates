@@ -25,22 +25,16 @@ function Layout({ children }: { children: ReactNode }) {
   return (
     <>
       <header role="banner">
-        <nav aria-label="Main navigation">
-          {/* Navigation links */}
-        </nav>
+        <nav aria-label="Main navigation">{/* Navigation links */}</nav>
       </header>
-      
+
       <main role="main" id="main-content">
         {children}
       </main>
-      
-      <aside aria-label="Related content">
-        {/* Sidebar */}
-      </aside>
-      
-      <footer role="contentinfo">
-        {/* Footer */}
-      </footer>
+
+      <aside aria-label="Related content">{/* Sidebar */}</aside>
+
+      <footer role="contentinfo">{/* Footer */}</footer>
     </>
   );
 }
@@ -67,42 +61,35 @@ function LoginForm() {
   return (
     <form aria-labelledby="form-title">
       <h2 id="form-title">Login</h2>
-      
+
       {/* Input with label */}
       <div>
         <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          type="email"
-          aria-required="true"
-          aria-describedby="email-error"
-        />
+        <input id="email" type="email" aria-required="true" aria-describedby="email-error" />
         <span id="email-error" role="alert">
           Please enter a valid email
         </span>
       </div>
-      
+
       {/* Required indicator */}
       <div>
         <label htmlFor="password">
           Password <span aria-label="required">*</span>
         </label>
-        <input
-          id="password"
-          type="password"
-          aria-required="true"
-        />
+        <input id="password" type="password" aria-required="true" />
       </div>
-      
+
       {/* Error summary */}
       <div role="alert" aria-live="polite">
         {errors.length > 0 && (
           <ul>
-            {errors.map(e => <li key={e.field}>{e.message}</li>)}
+            {errors.map((e) => (
+              <li key={e.field}>{e.message}</li>
+            ))}
           </ul>
         )}
       </div>
-      
+
       <button type="submit">Login</button>
     </form>
   );
@@ -172,7 +159,7 @@ function Modal({ isOpen, onClose, children }: ModalProps) {
       previousFocus.current = document.activeElement as HTMLElement;
       modalRef.current?.focus();
     }
-    
+
     return () => {
       previousFocus.current?.focus();
     };

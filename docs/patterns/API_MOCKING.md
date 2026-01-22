@@ -40,10 +40,7 @@ export const handlers = [
   // POST request
   http.post('/api/users', async ({ request }) => {
     const body = await request.json();
-    return HttpResponse.json(
-      { id: crypto.randomUUID(), ...body },
-      { status: 201 }
-    );
+    return HttpResponse.json({ id: crypto.randomUUID(), ...body }, { status: 201 });
   }),
 
   // Error response
@@ -119,7 +116,7 @@ it('shows error state when API fails', async () => {
   );
 
   render(<UserList />);
-  
+
   await waitFor(() => {
     expect(screen.getByText(/error/i)).toBeInTheDocument();
   });
@@ -137,11 +134,9 @@ export const scenarios = {
     http.get('/api/users', () => HttpResponse.json([])),
     http.get('/api/orders', () => HttpResponse.json([])),
   ],
-  
-  networkError: [
-    http.get('/api/*', () => HttpResponse.error()),
-  ],
-  
+
+  networkError: [http.get('/api/*', () => HttpResponse.error())],
+
   slowNetwork: [
     http.get('/api/*', async () => {
       await delay(3000);

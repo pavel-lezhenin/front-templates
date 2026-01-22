@@ -15,7 +15,7 @@ const PACKAGES_DIR = join(ROOT, 'packages');
 
 const args = process.argv.slice(2);
 const name = args[0];
-const frameworkArg = args.find(a => a.startsWith('--framework='));
+const frameworkArg = args.find((a) => a.startsWith('--framework='));
 const framework = frameworkArg?.split('=')[1] || 'react';
 
 if (!name) {
@@ -50,7 +50,7 @@ const dirs = [
   '.github/workflows',
 ];
 
-dirs.forEach(dir => {
+dirs.forEach((dir) => {
   mkdirSync(join(packageDir, dir), { recursive: true });
 });
 
@@ -80,10 +80,7 @@ const packageJson = {
   },
 };
 
-writeFileSync(
-  join(packageDir, 'package.json'),
-  JSON.stringify(packageJson, null, 2) + '\n'
-);
+writeFileSync(join(packageDir, 'package.json'), JSON.stringify(packageJson, null, 2) + '\n');
 
 // Copy config templates
 const templatesDir = join(ROOT, 'templates', 'configs');
@@ -96,17 +93,11 @@ const tsconfigTemplate = readFileSync(
 writeFileSync(join(packageDir, 'tsconfig.json'), tsconfigTemplate);
 
 // prettier
-const prettierConfig = readFileSync(
-  join(templatesDir, 'prettier', '.prettierrc.json'),
-  'utf-8'
-);
+const prettierConfig = readFileSync(join(templatesDir, 'prettier', '.prettierrc.json'), 'utf-8');
 writeFileSync(join(packageDir, '.prettierrc.json'), prettierConfig);
 
 // CI workflow
-const ciTemplate = readFileSync(
-  join(templatesDir, 'ci', 'child-ci.yml'),
-  'utf-8'
-);
+const ciTemplate = readFileSync(join(templatesDir, 'ci', 'child-ci.yml'), 'utf-8');
 writeFileSync(join(packageDir, '.github', 'workflows', 'ci.yml'), ciTemplate);
 
 // Create README
