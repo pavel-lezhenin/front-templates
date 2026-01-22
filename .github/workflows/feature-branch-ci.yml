@@ -137,19 +137,12 @@ jobs:
               VALIDATION_STATUS="$VALIDATION_STATUS\n- ℹ️ No package changes detected"
             fi
             
+            # Create PR body content
+            PR_BODY="$COMMIT_BODY"$'\n\n'"## 🤖 Auto-generated PR"$'\n\n'"This pull request was automatically created by the CI system."$'\n\n'"**Validation Status:**"$'\n'"$VALIDATION_STATUS"$'\n\n'"---"$'\n'"*Generated from commit: ${{ github.sha }}*"
+            
             PR_NUMBER=$(gh pr create \
               --title "$COMMIT_MSG" \
-              --body "$COMMIT_BODY
-
-## 🤖 Auto-generated PR
-
-This pull request was automatically created by the CI system.
-
-**Validation Status:**
-$VALIDATION_STATUS
-
----
-*Generated from commit: ${{ github.sha }}*" \
+              --body "$PR_BODY" \
               --head "$BRANCH_NAME" \
               --base "main" \
               --json number --jq '.number')

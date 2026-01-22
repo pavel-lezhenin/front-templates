@@ -153,57 +153,6 @@ jobs:
     steps:
       - name: Placeholder
         run: echo "PR creation handled by feature-branch-ci.yml"
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GH_PAT }}
-          fetch-depth: 0
-
-      - name: Create Pull Request
-        run: |
-          # Extract branch name
-          BRANCH_NAME=${GITHUB_REF#refs/heads/}
-          
-          # Check if PR already exists
-          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number')
-          
-          if [[ "$EXISTING_PR" != "null" && "$EXISTING_PR" != "" ]]; then
-            echo "✅ Pull Request already exists: #$EXISTING_PR"
-            echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
-          else
-            # Extract commit info for PR details
-            COMMIT_MSG=$(git log -1 --pretty=format:"%s")
-            COMMIT_BODY=$(git log -1 --pretty=format:"%b")
-            
-            # Create PR with conventional commit format
-            PR_NUMBER=$(gh pr create \
-              --title "$COMMIT_MSG" \
-              --body "$COMMIT_BODY
-
-              ## 🤖 Auto-generated PR
-              
-              This pull request was automatically created by the CI system.
-              
-              **Changes:**
-              - Automated CI/CD improvements
-              - Security and workflow enhancements
-              
-              **Validation:**
-              - ✅ Security scan passed
-              - ✅ Submodule workflows triggered
-              
-              ---
-              *Generated from commit: ${{ github.sha }}*" \
-              --head "$BRANCH_NAME" \
-              --base "main" \
-              --json number --jq '.number')
-            
-            echo "🎉 Created Pull Request: #$PR_NUMBER"
-            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
 
   notify-success:
     needs: [security]
