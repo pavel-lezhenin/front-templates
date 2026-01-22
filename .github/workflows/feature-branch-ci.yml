@@ -1,0 +1,173 @@
+name: Feature Branch CI
+
+on:
+  push:
+    branches-ignore: [main]
+  # Не включаем pull_request - он обрабатывается основным workflow
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  basic-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Security audit
+        run: pnpm audit --audit-level=high
+
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  detect-package-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.filter.outputs.changes }}
+      has_changes: ${{ steps.filter.outputs.changes != '[]' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed packages
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            react-fsd-starter:
+              - 'packages/react-fsd-starter/**'
+            react-fsd-tanstack:
+              - 'packages/react-fsd-tanstack/**'
+            angular-modular-starter:
+              - 'packages/angular-modular-starter/**'
+
+  trigger-submodule-ci:
+    needs: [basic-checks, detect-package-changes]
+    if: needs.detect-package-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-package-changes.outputs.packages) }}
+    steps:
+      - name: Trigger submodule CI
+        run: |
+          echo "🚀 Triggering CI for ${{ matrix.package }}"
+          
+          if ! gh api repos/${{ github.repository_owner }}/${{ matrix.package }} > /dev/null 2>&1; then
+            echo "⚠️  Repository ${{ github.repository_owner }}/${{ matrix.package }} not accessible"
+            echo "Skipping CI trigger for ${{ matrix.package }}"
+            exit 0
+          fi
+          
+          gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/dispatches \
+            -f event_type=parent_repo_update \
+            -F client_payload[parent_run_id]=${{ github.run_id }} \
+            -F client_payload[parent_repo]=${{ github.repository }} \
+            -F client_payload[parent_ref]=${{ github.ref }}
+          
+          echo "✅ Successfully triggered CI for ${{ matrix.package }}"
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
+
+  create-pull-request:
+    needs: [basic-checks, detect-package-changes]
+    if: |
+      always() && 
+      needs.basic-checks.result == 'success' &&
+      !contains(github.event.head_commit.message, '[skip-pr]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT || github.token }}
+          fetch-depth: 0
+
+      - name: Create Pull Request
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number')
+          
+          if [[ "$EXISTING_PR" != "null" && "$EXISTING_PR" != "" ]]; then
+            echo "✅ Pull Request already exists: #$EXISTING_PR"
+            echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
+          else
+            COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+            COMMIT_BODY=$(git log -1 --pretty=format:"%b")
+            
+            # Determine if there are package changes
+            HAS_PACKAGE_CHANGES="${{ needs.detect-package-changes.outputs.has_changes }}"
+            PACKAGES_LIST="${{ needs.detect-package-changes.outputs.packages }}"
+            
+            VALIDATION_STATUS="- ✅ Security scan passed\n- ✅ Code quality checks passed"
+            
+            if [[ "$HAS_PACKAGE_CHANGES" == "true" ]]; then
+              VALIDATION_STATUS="$VALIDATION_STATUS\n- 🔄 Submodule CI triggered for: $(echo '$PACKAGES_LIST' | jq -r 'join(", ")')"
+            else
+              VALIDATION_STATUS="$VALIDATION_STATUS\n- ℹ️ No package changes detected"
+            fi
+            
+            PR_NUMBER=$(gh pr create \
+              --title "$COMMIT_MSG" \
+              --body "$COMMIT_BODY
+
+## 🤖 Auto-generated PR
+
+This pull request was automatically created by the CI system.
+
+**Validation Status:**
+$VALIDATION_STATUS
+
+---
+*Generated from commit: ${{ github.sha }}*" \
+              --head "$BRANCH_NAME" \
+              --base "main" \
+              --json number --jq '.number')
+            
+            echo "🎉 Created Pull Request: #$PR_NUMBER"
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
+
+  notify-success:
+    needs: [basic-checks, create-pull-request]
+    if: always() && needs.basic-checks.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Success
+        run: |
+          echo "✅ Feature branch CI completed successfully"
+          if [[ "${{ needs.create-pull-request.outputs.pr_number }}" != "" ]]; then
+            echo "📝 Pull Request: #${{ needs.create-pull-request.outputs.pr_number }}"
+          fi

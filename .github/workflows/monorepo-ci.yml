@@ -2,7 +2,7 @@ name: Monorepo CI
 
 on:
   push:
-    branches: ['**']  # All branches
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -148,8 +148,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
 
   create-pull-request:
-    needs: [security, wait-for-submodules]
-    if: github.event_name == 'push' && github.ref != 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip-pr]')
+    runs-on: ubuntu-latest
+    if: false  # Disabled - handled by feature-branch-ci.yml
+    steps:
+      - name: Placeholder
+        run: echo "PR creation handled by feature-branch-ci.yml"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -203,8 +206,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
 
   notify-success:
-    needs: [security, wait-for-submodules, create-pull-request]
-    if: always() && !failure()
+    needs: [security]
+    if: always() && needs.security.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Success
