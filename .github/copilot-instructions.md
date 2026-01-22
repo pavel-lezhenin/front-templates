@@ -42,7 +42,7 @@ Each package is independent git submodule.
 **Before parent commit:**
 
 ```bash
-make submodule-check
+pnpm submodule:check
 ```
 
 ## TypeScript Standards

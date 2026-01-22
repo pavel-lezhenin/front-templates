@@ -34,11 +34,11 @@ front-templates/
 │   ├── tooling/
 │   └── decisions/
 │
-├── scripts/                         # Automation
-│   ├── create-package.ts
-│   └── check-affected.ts
+├── scripts/                         # Automation (Node.js ESM)
+│   ├── check-branch.mjs             # Verify not on main
+│   ├── create-package.mjs           # Scaffold new package
+│   └── submodule-add.mjs            # Add git submodule
 │
-├── Makefile
 ├── package.json
 ├── pnpm-workspace.yaml
 └── README.md
@@ -135,10 +135,13 @@ docs/
 
 ### scripts/
 
-Automation scripts:
+Node.js ESM automation scripts:
 
-- `create-package.ts` — scaffold new packages
-- `check-affected.ts` — detect changed submodules for CI
+| Script | Command | Description |
+|--------|---------|-------------|
+| `check-branch.mjs` | husky pre-commit | Prevents commits to main |
+| `create-package.mjs` | `pnpm new <name>` | Scaffolds new package |
+| `submodule-add.mjs` | `pnpm submodule:add <url> <name>` | Adds git submodule |
 
 ## Independence Principle
 
