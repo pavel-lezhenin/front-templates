@@ -10,31 +10,6 @@ const REPO_OWNER = 'pavel-lezhenin';
 const PARENT_REPO = 'front-templates';
 const SUBMODULE_REPOS = ['react-fsd-starter'];
 
-function createWebhook(repo) {
-  console.log(`🔗 Setting up webhook for ${REPO_OWNER}/${repo}`);
-
-  const webhookConfig = {
-    name: 'repository_dispatch',
-    active: true,
-    events: ['repository_dispatch'],
-    config: {
-      url: `https://api.github.com/repos/${REPO_OWNER}/${PARENT_REPO}/dispatches`,
-      content_type: 'application/json',
-    },
-  };
-
-  try {
-    const configJson = JSON.stringify(webhookConfig);
-    execSync(`gh api repos/${REPO_OWNER}/${repo}/hooks -X POST --input -`, {
-      input: configJson,
-      stdio: ['pipe', 'inherit', 'inherit'],
-    });
-    console.log(`✅ Webhook configured for ${repo}`);
-  } catch (error) {
-    console.error(`❌ Failed to configure webhook for ${repo}:`, error.message);
-  }
-}
-
 function checkSubmoduleCI(repo) {
   console.log(`🔍 Checking CI configuration for ${REPO_OWNER}/${repo}`);
 

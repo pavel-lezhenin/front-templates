@@ -4,8 +4,7 @@
  * Usage: node scripts/create-package.mjs <name> [--framework=react|angular]
  */
 
-import { execSync } from 'child_process';
-import { mkdirSync, writeFileSync, readFileSync, existsSync, cpSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
