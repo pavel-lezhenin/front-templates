@@ -1,0 +1,105 @@
+name: Monorepo CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed packages
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            react-fsd-starter:
+              - 'packages/react-fsd-starter/**'
+            react-fsd-tanstack:
+              - 'packages/react-fsd-tanstack/**'
+            angular-modular-starter:
+              - 'packages/angular-modular-starter/**'
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-submodules:
+    needs: [detect-changes, security]
+    if: needs.detect-changes.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
+    steps:
+      - name: Trigger submodule CI
+        run: |
+          gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/dispatches \
+            -f event_type=parent_repo_update \
+            -f client_payload[parent_run_id]=${{ github.run_id }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+  wait-for-submodules:
+    needs: [detect-changes, trigger-submodules]
+    if: needs.detect-changes.outputs.packages != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
+    steps:
+      - name: Wait for submodule CI
+        run: |
+          for i in {1..60}; do
+            status=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/runs \
+              --jq '.workflow_runs[0].status')
+            
+            if [[ "$status" == "completed" ]]; then
+              conclusion=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/runs \
+                --jq '.workflow_runs[0].conclusion')
+              
+              if [[ "$conclusion" == "success" ]]; then
+                echo "✅ ${{ matrix.package }} CI passed"
+                exit 0
+              else
+                echo "❌ ${{ matrix.package }} CI failed"
+                exit 1
+              fi
+            fi
+            
+            echo "⏳ Waiting for ${{ matrix.package }} CI... ($i/60)"
+            sleep 10
+          done
+          
+          echo "❌ Timeout waiting for ${{ matrix.package }} CI"
+          exit 1
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+  notify-success:
+    needs: [security, wait-for-submodules]
+    if: always() && !failure()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Success
+        run: echo "✅ All checks passed"

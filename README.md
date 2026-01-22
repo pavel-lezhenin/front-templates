@@ -1,0 +1,166 @@
+# Front-Templates
+
+> **Starter templates for frontend development** — patterns, best practices, documentation
+
+## 🎯 Purpose
+
+A collection of reference implementations demonstrating:
+
+- **Architecture patterns** — FSD, Modular, Atomic, Clean
+- **Frameworks** — React, Angular
+- **Technologies** — Web3, SSR (Next.js), Micro-frontends
+- **Best practices** — TypeScript strict, testing, security, CI/CD
+- **AI Agents** — Architect, Developer, Tester, Design
+
+Each template is a fully independent project that can be cloned and used standalone.
+
+## 📦 Structure
+
+```
+packages/
+├── react-fsd-starter/          # React + Feature-Sliced Design
+├── react-modular-starter/      # React + Modular Architecture
+├── react-web3-wagmi-starter/   # React + Web3 (wagmi)
+├── react-mf-shop-shell/        # Micro-frontend shell
+├── react-mf-shop-catalog/      # Micro-frontend remote
+├── angular-standalone-starter/ # Angular Standalone
+├── angular-ngrx-starter/       # Angular + NgRx
+└── ...
+```
+
+## 🚀 Quick Start
+
+```bash
+# Clone with submodules
+git clone --recursive <repo-url>
+cd front-templates
+
+# Install dependencies & setup
+pnpm install
+pnpm prepare
+```
+
+### Use a Template
+
+Each package is independent. Clone directly:
+
+```bash
+git clone <package-repo-url> my-project
+cd my-project
+pnpm install
+pnpm dev
+```
+
+Or copy from monorepo:
+
+```bash
+cp -r packages/react-fsd-starter my-project
+cd my-project
+rm -rf .git
+git init
+pnpm install
+```
+
+## 📐 Architecture
+
+### Hierarchy
+
+```
+Framework → Pattern/Technology → Project
+```
+
+- **Framework**: React, Angular
+- **Pattern**: FSD, Modular, Atomic, Standalone, NgRx
+- **Technology**: Web3, MF, SSR (Next.js, Firebase)
+
+### Naming Convention
+
+```
+{framework}-{pattern|technology}-{project}[-{role}]
+```
+
+See [docs/NAMING.md](docs/NAMING.md) for details.
+
+### Versioning
+
+Framework versions managed via git tags:
+
+```
+v1.0.0-react18
+v2.0.0-react19
+```
+
+See [docs/VERSIONING.md](docs/VERSIONING.md) for details.
+
+## 📋 Defaults
+
+|               | React              | Angular           |
+| ------------- | ------------------ | ----------------- |
+| Build         | Vite               | Angular CLI       |
+| Styling       | Tailwind           | SCSS              |
+| State         | Zustand            | Signals           |
+| Server State  | TanStack Query     | HttpClient        |
+| Forms         | RHF + Zod          | Reactive Forms    |
+| Testing       | Jest + RTL         | Jest              |
+| E2E           | Playwright         | Playwright        |
+
+## 🤖 AI Agents
+
+Specialized agents for code review and architecture validation:
+
+| Agent         | Responsibility                              |
+| ------------- | ------------------------------------------- |
+| **Architect** | Structure, layers, dependencies             |
+| **Developer** | Code quality, TypeScript, SOLID             |
+| **Tester**    | Coverage, test quality, E2E strategy        |
+| **Design**    | UI consistency, tokens, accessibility       |
+
+See [docs/agents/](docs/agents/) for agent definitions.
+
+## 📚 Documentation
+
+- [Architecture Principles](docs/architecture/PRINCIPLES.md)
+- [Naming Convention](docs/NAMING.md)
+- [Versioning Strategy](docs/VERSIONING.md)
+- [Repository Structure](docs/STRUCTURE.md)
+
+### Patterns
+
+- [Error Handling](docs/patterns/ERROR_HANDLING.md)
+- [Authentication](docs/patterns/AUTHENTICATION.md)
+- [State Management](docs/patterns/STATE_MANAGEMENT.md)
+- [Forms](docs/patterns/FORMS.md)
+- [Performance](docs/patterns/PERFORMANCE.md)
+
+### Frameworks
+
+- [React Guide](docs/framework/REACT.md)
+- [Angular Guide](docs/framework/ANGULAR.md)
+
+### Technologies
+
+- [Web3](docs/technology/WEB3.md)
+- [SSR (Next.js)](docs/technology/SSR.md)
+- [Micro-frontends](docs/microfrontends/OVERVIEW.md)
+
+## 🔒 Security
+
+All packages include mandatory security checks:
+
+- **gitleaks** — secret scanning
+- **npm audit** — dependency vulnerabilities
+
+## 🗺️ Roadmap
+
+- [x] Repository structure
+- [x] Core documentation
+- [x] AI agents definitions
+- [ ] react-fsd-starter
+- [ ] angular-standalone-starter
+- [ ] Web3 templates
+- [ ] Micro-frontend templates
+- [ ] Vue (future)
+
+## 📄 License
+
+MIT
