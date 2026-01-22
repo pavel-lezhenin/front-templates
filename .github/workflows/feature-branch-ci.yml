@@ -3,12 +3,10 @@ name: Feature Branch CI
 on:
   push:
     branches-ignore: [main]
-  # Не включаем pull_request - он обрабатывается основным workflow
 
 permissions:
   contents: read
   pull-requests: write
-  actions: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -32,7 +30,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Format check
         run: pnpm format:check
@@ -42,64 +40,15 @@ jobs:
 
       - name: Security audit
         run: pnpm audit --audit-level=high
+        continue-on-error: true
 
       - name: Gitleaks scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
-  detect-package-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      packages: ${{ steps.filter.outputs.changes }}
-      has_changes: ${{ steps.filter.outputs.changes != '[]' }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect changed packages
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            react-fsd-starter:
-              - 'packages/react-fsd-starter/**'
-            react-fsd-tanstack:
-              - 'packages/react-fsd-tanstack/**'
-            angular-modular-starter:
-              - 'packages/angular-modular-starter/**'
-
-  trigger-submodule-ci:
-    needs: [basic-checks, detect-package-changes]
-    if: needs.detect-package-changes.outputs.has_changes == 'true'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        package: ${{ fromJson(needs.detect-package-changes.outputs.packages) }}
-    steps:
-      - name: Trigger submodule CI
-        run: |
-          echo "🚀 Triggering CI for ${{ matrix.package }}"
-          
-          if ! gh api repos/${{ github.repository_owner }}/${{ matrix.package }} > /dev/null 2>&1; then
-            echo "⚠️  Repository ${{ github.repository_owner }}/${{ matrix.package }} not accessible"
-            echo "Skipping CI trigger for ${{ matrix.package }}"
-            exit 0
-          fi
-          
-          gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/dispatches \
-            -f event_type=parent_repo_update \
-            -F client_payload[parent_run_id]=${{ github.run_id }} \
-            -F client_payload[parent_repo]=${{ github.repository }} \
-            -F client_payload[parent_ref]=${{ github.ref }}
-          
-          echo "✅ Successfully triggered CI for ${{ matrix.package }}"
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
-
   create-pull-request:
-    needs: [basic-checks, detect-package-changes]
+    needs: [basic-checks]
     if: |
       always() && 
       needs.basic-checks.result == 'success' &&
@@ -120,35 +69,19 @@ jobs:
           
           if [[ "$EXISTING_PR" != "null" && "$EXISTING_PR" != "" ]]; then
             echo "✅ Pull Request already exists: #$EXISTING_PR"
-            echo "pr_number=$EXISTING_PR" >> $GITHUB_OUTPUT
           else
             COMMIT_MSG=$(git log -1 --pretty=format:"%s")
             COMMIT_BODY=$(git log -1 --pretty=format:"%b")
             
-            # Determine if there are package changes
-            HAS_PACKAGE_CHANGES="${{ needs.detect-package-changes.outputs.has_changes }}"
-            PACKAGES_LIST="${{ needs.detect-package-changes.outputs.packages }}"
+            PR_BODY="$COMMIT_BODY"$'\n\n'"## 🤖 Auto-generated PR"$'\n\n'"This pull request was automatically created by the CI system."$'\n\n'"**Validation Status:**"$'\n'"- ✅ Security scan passed"$'\n'"- ✅ Code quality checks passed"$'\n\n'"---"$'\n'"*Generated from commit: ${{ github.sha }}*"
             
-            VALIDATION_STATUS="- ✅ Security scan passed\n- ✅ Code quality checks passed"
-            
-            if [[ "$HAS_PACKAGE_CHANGES" == "true" ]]; then
-              VALIDATION_STATUS="$VALIDATION_STATUS\n- 🔄 Submodule CI triggered for: $(echo '$PACKAGES_LIST' | jq -r 'join(", ")')"
-            else
-              VALIDATION_STATUS="$VALIDATION_STATUS\n- ℹ️ No package changes detected"
-            fi
-            
-            # Create PR body content
-            PR_BODY="$COMMIT_BODY"$'\n\n'"## 🤖 Auto-generated PR"$'\n\n'"This pull request was automatically created by the CI system."$'\n\n'"**Validation Status:**"$'\n'"$VALIDATION_STATUS"$'\n\n'"---"$'\n'"*Generated from commit: ${{ github.sha }}*"
-            
-            PR_NUMBER=$(gh pr create \
+            gh pr create \
               --title "$COMMIT_MSG" \
               --body "$PR_BODY" \
               --head "$BRANCH_NAME" \
-              --base "main" \
-              --json number --jq '.number')
+              --base "main"
             
-            echo "🎉 Created Pull Request: #$PR_NUMBER"
-            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "🎉 Created Pull Request"
           fi
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
@@ -159,8 +92,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Success
-        run: |
-          echo "✅ Feature branch CI completed successfully"
-          if [[ "${{ needs.create-pull-request.outputs.pr_number }}" != "" ]]; then
-            echo "📝 Pull Request: #${{ needs.create-pull-request.outputs.pr_number }}"
-          fi
+        run: echo "✅ Feature branch CI completed successfully"

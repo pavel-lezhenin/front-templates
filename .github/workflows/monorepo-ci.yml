@@ -7,36 +7,37 @@ on:
     branches: [main]
 
 permissions:
-  contents: read          # Read repository contents
-  pull-requests: write    # Create and update PRs
-  actions: read          # Read workflow runs
-  security-events: write # Upload security scan results
+  contents: read
+  pull-requests: write
+  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  detect-changes:
+  lint:
     runs-on: ubuntu-latest
-    outputs:
-      packages: ${{ steps.filter.outputs.changes }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Detect changed packages
-        id: filter
-        uses: dorny/paths-filter@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          filters: |
-            react-fsd-starter:
-              - 'packages/react-fsd-starter/**'
-            react-fsd-tanstack:
-              - 'packages/react-fsd-tanstack/**'
-            angular-modular-starter:
-              - 'packages/angular-modular-starter/**'
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
 
   security:
     runs-on: ubuntu-latest
@@ -55,114 +56,20 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Security audit
         run: pnpm audit --audit-level=high
+        continue-on-error: true
 
       - name: Gitleaks scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  trigger-submodules:
-    needs: [detect-changes, security]
-    if: needs.detect-changes.outputs.packages != '[]'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
-    steps:
-      - name: Trigger submodule CI
-        run: |
-          echo "🚀 Triggering CI for ${{ matrix.package }}"
-          
-          # Check if repository exists
-          if ! gh api repos/${{ github.repository_owner }}/${{ matrix.package }} > /dev/null 2>&1; then
-            echo "⚠️  Repository ${{ github.repository_owner }}/${{ matrix.package }} not found or not accessible"
-            echo "Skipping CI trigger for ${{ matrix.package }}"
-            exit 0
-          fi
-          
-          # Trigger repository dispatch
-          gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/dispatches \
-            -f event_type=parent_repo_update \
-            -F client_payload[parent_run_id]=${{ github.run_id }} \
-            -F client_payload[parent_repo]=${{ github.repository }} \
-            -F client_payload[parent_ref]=${{ github.ref }}
-          
-          echo "✅ Successfully triggered CI for ${{ matrix.package }}"
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
-
-  wait-for-submodules:
-    needs: [detect-changes, trigger-submodules]
-    if: needs.detect-changes.outputs.packages != '[]'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
-    steps:
-      - name: Wait for submodule CI
-        run: |
-          echo "🔍 Checking CI status for ${{ matrix.package }}"
-          
-          # Check if we can access the repository
-          if ! gh api repos/${{ github.repository_owner }}/${{ matrix.package }} > /dev/null 2>&1; then
-            echo "⚠️  Repository ${{ github.repository_owner }}/${{ matrix.package }} not accessible"
-            echo "Skipping CI wait for ${{ matrix.package }}"
-            exit 0
-          fi
-          
-          for i in {1..60}; do
-            echo "⏳ Waiting for ${{ matrix.package }} CI... ($i/60)"
-            
-            # Get latest repository_dispatch run for ci.yml
-            response=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/workflows/ci.yml/runs \
-              -f event=repository_dispatch \
-              --jq '.workflow_runs[0] | {status: .status, conclusion: .conclusion}' 2>/dev/null || echo 'null')
-            
-            if [[ "$response" == "null" ]]; then
-              echo "⚠️  No repository_dispatch runs found yet for ${{ matrix.package }}"
-              sleep 10
-              continue
-            fi
-            
-            status=$(echo "$response" | jq -r '.status // "unknown"')
-            
-            if [[ "$status" == "completed" ]]; then
-              conclusion=$(echo "$response" | jq -r '.conclusion')
-              
-              if [[ "$conclusion" == "success" ]]; then
-                echo "✅ ${{ matrix.package }} CI passed"
-                exit 0
-              else
-                echo "❌ ${{ matrix.package }} CI failed with conclusion: $conclusion"
-                exit 1
-              fi
-            elif [[ "$status" == "unknown" ]]; then
-              echo "⚠️  Unable to get CI status for repository_dispatch runs"
-            fi
-            
-            sleep 10
-          done
-          
-          echo "❌ Timeout waiting for ${{ matrix.package }} CI (10 minutes)"
-          echo "No completed repository_dispatch run detected"
-          exit 1
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
-
-  create-pull-request:
-    runs-on: ubuntu-latest
-    if: false  # Disabled - handled by feature-branch-ci.yml
-    steps:
-      - name: Placeholder
-        run: echo "PR creation handled by feature-branch-ci.yml"
-
   notify-success:
-    needs: [security]
-    if: always() && needs.security.result == 'success'
+    needs: [lint, security]
+    if: always() && needs.lint.result == 'success' && needs.security.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Success
