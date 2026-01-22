@@ -117,11 +117,18 @@ jobs:
           for i in {1..60}; do
             echo "⏳ Waiting for ${{ matrix.package }} CI... ($i/60)"
             
-            # Get latest workflow run status
-            response=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/runs \
-              --jq '.workflow_runs[0] | {status: .status, conclusion: .conclusion}' 2>/dev/null || echo '{"status": "unknown"}')
+            # Get latest repository_dispatch run for ci.yml
+            response=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/workflows/ci.yml/runs \
+              -f event=repository_dispatch \
+              --jq '.workflow_runs[0] | {status: .status, conclusion: .conclusion}' 2>/dev/null || echo 'null')
             
-            status=$(echo "$response" | jq -r '.status')
+            if [[ "$response" == "null" ]]; then
+              echo "⚠️  No repository_dispatch runs found yet for ${{ matrix.package }}"
+              sleep 10
+              continue
+            fi
+            
+            status=$(echo "$response" | jq -r '.status // "unknown"')
             
             if [[ "$status" == "completed" ]]; then
               conclusion=$(echo "$response" | jq -r '.conclusion')
@@ -134,15 +141,14 @@ jobs:
                 exit 1
               fi
             elif [[ "$status" == "unknown" ]]; then
-              echo "⚠️  Unable to get CI status, assuming success"
-              exit 0
+              echo "⚠️  Unable to get CI status for repository_dispatch runs"
             fi
             
             sleep 10
           done
           
           echo "❌ Timeout waiting for ${{ matrix.package }} CI (10 minutes)"
-          echo "Last known status: $status"
+          echo "No completed repository_dispatch run detected"
           exit 1
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
