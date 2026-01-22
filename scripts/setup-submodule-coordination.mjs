@@ -7,7 +7,6 @@
 import { execSync } from 'child_process';
 
 const REPO_OWNER = 'pavel-lezhenin';
-const PARENT_REPO = 'front-templates';
 const SUBMODULE_REPOS = ['react-fsd-starter'];
 
 function checkSubmoduleCI(repo) {
