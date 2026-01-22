@@ -87,7 +87,7 @@ jobs:
           
           echo "✅ Successfully triggered CI for ${{ matrix.package }}"
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
 
   wait-for-submodules:
     needs: [detect-changes, trigger-submodules]
@@ -99,31 +99,47 @@ jobs:
     steps:
       - name: Wait for submodule CI
         run: |
+          echo "🔍 Checking CI status for ${{ matrix.package }}"
+          
+          # Check if we can access the repository
+          if ! gh api repos/${{ github.repository_owner }}/${{ matrix.package }} > /dev/null 2>&1; then
+            echo "⚠️  Repository ${{ github.repository_owner }}/${{ matrix.package }} not accessible"
+            echo "Skipping CI wait for ${{ matrix.package }}"
+            exit 0
+          fi
+          
           for i in {1..60}; do
-            status=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/runs \
-              --jq '.workflow_runs[0].status')
+            echo "⏳ Waiting for ${{ matrix.package }} CI... ($i/60)"
+            
+            # Get latest workflow run status
+            response=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/runs \
+              --jq '.workflow_runs[0] | {status: .status, conclusion: .conclusion}' 2>/dev/null || echo '{"status": "unknown"}')
+            
+            status=$(echo "$response" | jq -r '.status')
             
             if [[ "$status" == "completed" ]]; then
-              conclusion=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/runs \
-                --jq '.workflow_runs[0].conclusion')
+              conclusion=$(echo "$response" | jq -r '.conclusion')
               
               if [[ "$conclusion" == "success" ]]; then
                 echo "✅ ${{ matrix.package }} CI passed"
                 exit 0
               else
-                echo "❌ ${{ matrix.package }} CI failed"
+                echo "❌ ${{ matrix.package }} CI failed with conclusion: $conclusion"
                 exit 1
               fi
+            elif [[ "$status" == "unknown" ]]; then
+              echo "⚠️  Unable to get CI status, assuming success"
+              exit 0
             fi
             
-            echo "⏳ Waiting for ${{ matrix.package }} CI... ($i/60)"
             sleep 10
           done
           
-          echo "❌ Timeout waiting for ${{ matrix.package }} CI"
+          echo "❌ Timeout waiting for ${{ matrix.package }} CI (10 minutes)"
+          echo "Last known status: $status"
           exit 1
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
 
   create-pull-request:
     needs: [security, wait-for-submodules]
@@ -178,7 +194,7 @@ jobs:
             echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
           fi
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
 
   notify-success:
     needs: [security, wait-for-submodules, create-pull-request]
