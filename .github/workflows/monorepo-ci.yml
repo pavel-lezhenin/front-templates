@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read          # Read repository contents
+  pull-requests: write    # Create and update PRs
+  actions: read          # Read workflow runs
+  security-events: write # Upload security scan results
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
