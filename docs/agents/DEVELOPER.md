@@ -84,7 +84,7 @@ interface DataItem {
 }
 
 function processData(data: readonly DataItem[]): number[] {
-  return data.map(item => item.value);
+  return data.map((item) => item.value);
 }
 ```
 
@@ -159,36 +159,47 @@ import DOMPurify from 'dompurify';
 
 ## Output Format
 
-```markdown
+````markdown
 ## Code Review: {File/Component Name}
 
 ### Summary
+
 {Quality assessment}
 
 ### Issues
 
 #### 🔴 Critical
+
 - Line {X}: {Issue}
+
   ```typescript
   // Before
   {code}
-  
+
   // After
   {fixed code}
   ```
+````
 
 #### 🟡 Warnings
+
 - {Minor issue}
 
 #### 💡 Suggestions
+
 - {Improvement idea}
 
 ### Performance
+
 - {Re-render concern}
 - {Optimization opportunity}
 
 ### Security
+
 - {Vulnerability if any}
 
 ### Verdict: APPROVE / REQUEST_CHANGES
+
+```
+
 ```

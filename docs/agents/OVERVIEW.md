@@ -6,12 +6,12 @@ AI agents provide specialized code review and architectural guidance. Each agent
 
 ## Available Agents
 
-| Agent         | Focus                                    |
-| ------------- | ---------------------------------------- |
-| **Architect** | Structure, layers, dependencies          |
-| **Developer** | Code quality, TypeScript, patterns       |
-| **Tester**    | Coverage, test quality, E2E              |
-| **Design**    | UI consistency, tokens, accessibility    |
+| Agent         | Focus                                 |
+| ------------- | ------------------------------------- |
+| **Architect** | Structure, layers, dependencies       |
+| **Developer** | Code quality, TypeScript, patterns    |
+| **Tester**    | Coverage, test quality, E2E           |
+| **Design**    | UI consistency, tokens, accessibility |
 
 ## How to Use
 

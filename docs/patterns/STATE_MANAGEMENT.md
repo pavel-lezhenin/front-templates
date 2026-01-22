@@ -27,7 +27,7 @@ interface UserState {
 export const useUserStore = create<UserState>((set) => ({
   user: null,
   setUser: (user) => set({ user }),
-  updateName: (name) => 
+  updateName: (name) =>
     set((state) => ({
       user: state.user ? { ...state.user, name } : null,
     })),
@@ -63,33 +63,33 @@ export const useCartStore = create<CartState>()(
     persist(
       immer((set, get) => ({
         items: [],
-        
-        addItem: (item) => set((state) => {
-          const existing = state.items.find((i) => i.id === item.id);
-          if (existing) {
-            existing.quantity += 1;
-          } else {
-            state.items.push({ ...item, quantity: 1 });
-          }
-        }),
-        
-        removeItem: (id) => set((state) => {
-          state.items = state.items.filter((i) => i.id !== id);
-        }),
-        
-        updateQuantity: (id, quantity) => set((state) => {
-          const item = state.items.find((i) => i.id === id);
-          if (item) {
-            item.quantity = quantity;
-          }
-        }),
-        
+
+        addItem: (item) =>
+          set((state) => {
+            const existing = state.items.find((i) => i.id === item.id);
+            if (existing) {
+              existing.quantity += 1;
+            } else {
+              state.items.push({ ...item, quantity: 1 });
+            }
+          }),
+
+        removeItem: (id) =>
+          set((state) => {
+            state.items = state.items.filter((i) => i.id !== id);
+          }),
+
+        updateQuantity: (id, quantity) =>
+          set((state) => {
+            const item = state.items.find((i) => i.id === id);
+            if (item) {
+              item.quantity = quantity;
+            }
+          }),
+
         clearCart: () => set({ items: [] }),
-        
-        total: () => get().items.reduce(
-          (sum, item) => sum + item.price * item.quantity, 
-          0
-        ),
+
+        total: () => get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
       })),
       { name: 'cart-storage' }
     ),
@@ -108,7 +108,7 @@ function CartTotal() {
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   // ✅ GOOD: Only re-renders when total changes
-  const total = useCartStore((state) => 
+  const total = useCartStore((state) =>
     state.items.reduce((sum, i) => sum + i.price * i.quantity, 0)
   );
 
@@ -200,10 +200,7 @@ export function useUpdateProduct() {
     onError: (_err, variables, context) => {
       // Rollback
       if (context?.previous) {
-        queryClient.setQueryData(
-          productKeys.detail(variables.id), 
-          context.previous
-        );
+        queryClient.setQueryData(productKeys.detail(variables.id), context.previous);
       }
     },
     onSettled: (_data, _error, variables) => {
@@ -258,13 +255,13 @@ export class ProductService {
 
 ## When to Use What
 
-| State Type | Tool | Examples |
-|------------|------|----------|
-| Server data | TanStack Query | API responses, user data |
-| UI state | Zustand / Signals | Modal open, selected tab |
-| Form state | React Hook Form | Form inputs |
-| URL state | Router | Filters, pagination |
-| Global app | Zustand | Theme, auth, cart |
+| State Type  | Tool              | Examples                 |
+| ----------- | ----------------- | ------------------------ |
+| Server data | TanStack Query    | API responses, user data |
+| UI state    | Zustand / Signals | Modal open, selected tab |
+| Form state  | React Hook Form   | Form inputs              |
+| URL state   | Router            | Filters, pagination      |
+| Global app  | Zustand           | Theme, auth, cart        |
 
 ## Best Practices
 

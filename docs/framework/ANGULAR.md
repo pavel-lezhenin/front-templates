@@ -32,16 +32,16 @@ src/
 
 ## Stack Defaults
 
-| Concern | Library |
-|---------|---------|
-| Build | Angular CLI |
-| Styling | SCSS |
-| State | Signals + Services |
-| Forms | Reactive Forms |
-| HTTP | HttpClient |
-| Testing | Jest |
-| E2E | Playwright |
-| Mocking | MSW |
+| Concern | Library            |
+| ------- | ------------------ |
+| Build   | Angular CLI        |
+| Styling | SCSS               |
+| State   | Signals + Services |
+| Forms   | Reactive Forms     |
+| HTTP    | HttpClient         |
+| Testing | Jest               |
+| E2E     | Playwright         |
+| Mocking | MSW                |
 
 ## Modern Angular Patterns
 
@@ -109,7 +109,7 @@ export class ProductService {
   }
 
   addProduct(product: Product): void {
-    this.productsState.update(products => [...products, product]);
+    this.productsState.update((products) => [...products, product]);
   }
 }
 ```
@@ -131,7 +131,7 @@ export class ProductService {
         <p>No products found</p>
       }
     }
-    
+
     @switch (status()) {
       @case ('pending') {
         <span>Pending...</span>
@@ -147,7 +147,7 @@ export class ProductService {
 })
 export class ProductListComponent {
   private productService = inject(ProductService);
-  
+
   products = this.productService.products;
   loading = this.productService.loading;
   error = this.productService.error;
@@ -190,10 +190,10 @@ export class ProductListComponent {
 export class ProductCardComponent {
   // Required input
   product = input.required<Product>();
-  
+
   // Optional input with default
   variant = input<'default' | 'compact'>('default');
-  
+
   // Output
   cardClicked = output<Product>();
 }
@@ -209,21 +209,19 @@ import { HttpInterceptorFn } from '@angular/common/http';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const token = localStorage.getItem('access_token');
-  
+
   if (token) {
     req = req.clone({
       setHeaders: { Authorization: `Bearer ${token}` },
     });
   }
-  
+
   return next(req);
 };
 
 // app.config.ts
 export const appConfig: ApplicationConfig = {
-  providers: [
-    provideHttpClient(withInterceptors([authInterceptor])),
-  ],
+  providers: [provideHttpClient(withInterceptors([authInterceptor]))],
 };
 ```
 
@@ -312,7 +310,7 @@ describe('ProductCardComponent', () => {
   it('displays product name', () => {
     fixture.componentRef.setInput('product', { id: '1', name: 'Test', price: 100 });
     fixture.detectChanges();
-    
+
     expect(fixture.nativeElement.textContent).toContain('Test');
   });
 
@@ -320,10 +318,10 @@ describe('ProductCardComponent', () => {
     const product = { id: '1', name: 'Test', price: 100 };
     fixture.componentRef.setInput('product', product);
     fixture.detectChanges();
-    
+
     const spy = jest.spyOn(component.cardClicked, 'emit');
     fixture.nativeElement.querySelector('div').click();
-    
+
     expect(spy).toHaveBeenCalledWith(product);
   });
 });
@@ -350,7 +348,7 @@ describe('ProductService', () => {
   it('adds product to state', () => {
     const product = { id: '1', name: 'Test', price: 100 };
     service.addProduct(product);
-    
+
     expect(service.products()).toContain(product);
     expect(service.productCount()).toBe(1);
   });

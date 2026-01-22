@@ -8,59 +8,59 @@
 
 ## Segments
 
-| Segment    | Description                        | Examples                                    |
-| ---------- | ---------------------------------- | ------------------------------------------- |
-| framework  | Base framework                     | `react`, `angular`                          |
-| pattern    | Architecture pattern               | `fsd`, `modular`, `atomic`, `standalone`, `ngrx`, `nx` |
-| technology | Technology stack (instead of pattern) | `web3`, `mf`, `next`, `firebase`         |
-| project    | Project name/type                  | `starter`, `ecommerce`, `admin`, `shop`     |
-| role       | MF role (optional)                 | `shell`, `remote`, `shared`, `e2e`          |
+| Segment    | Description                           | Examples                                               |
+| ---------- | ------------------------------------- | ------------------------------------------------------ |
+| framework  | Base framework                        | `react`, `angular`                                     |
+| pattern    | Architecture pattern                  | `fsd`, `modular`, `atomic`, `standalone`, `ngrx`, `nx` |
+| technology | Technology stack (instead of pattern) | `web3`, `mf`, `next`, `firebase`                       |
+| project    | Project name/type                     | `starter`, `ecommerce`, `admin`, `shop`                |
+| role       | MF role (optional)                    | `shell`, `remote`, `shared`, `e2e`                     |
 
 ## Examples
 
 ### Regular Projects
 
-| Name                        | Description                      |
-| --------------------------- | -------------------------------- |
-| `react-fsd-starter`         | React + FSD template             |
-| `react-fsd-ecommerce`       | React + FSD implementation       |
-| `react-modular-starter`     | React + Modular template         |
-| `react-atomic-starter`      | React + Atomic Design            |
-| `angular-standalone-starter`| Angular Standalone Components    |
-| `angular-ngrx-starter`      | Angular + NgRx                   |
-| `angular-nx-enterprise`     | Angular + Nx workspace           |
+| Name                         | Description                   |
+| ---------------------------- | ----------------------------- |
+| `react-fsd-starter`          | React + FSD template          |
+| `react-fsd-ecommerce`        | React + FSD implementation    |
+| `react-modular-starter`      | React + Modular template      |
+| `react-atomic-starter`       | React + Atomic Design         |
+| `angular-standalone-starter` | Angular Standalone Components |
+| `angular-ngrx-starter`       | Angular + NgRx                |
+| `angular-nx-enterprise`      | Angular + Nx workspace        |
 
 ### With Technology Suffix
 
-| Name                          | Description                    |
-| ----------------------------- | ------------------------------ |
-| `react-fsd-starter-next`      | React + FSD + Next.js SSR      |
-| `react-fsd-starter-firebase`  | React + FSD + Firebase         |
-| `angular-standalone-starter-ssr` | Angular + SSR (Universal)   |
+| Name                             | Description               |
+| -------------------------------- | ------------------------- |
+| `react-fsd-starter-next`         | React + FSD + Next.js SSR |
+| `react-fsd-starter-firebase`     | React + FSD + Firebase    |
+| `angular-standalone-starter-ssr` | Angular + SSR (Universal) |
 
 ### Web3 Projects
 
-| Name                        | Description                      |
-| --------------------------- | -------------------------------- |
-| `react-web3-wagmi-starter`  | React + wagmi + viem             |
-| `react-web3-ethers-defi`    | React + ethers.js + DeFi app     |
+| Name                       | Description                  |
+| -------------------------- | ---------------------------- |
+| `react-web3-wagmi-starter` | React + wagmi + viem         |
+| `react-web3-ethers-defi`   | React + ethers.js + DeFi app |
 
 ### Micro-Frontend Projects
 
-| Name                        | Description                      |
-| --------------------------- | -------------------------------- |
-| `react-mf-shop-shell`       | MF host application              |
-| `react-mf-shop-catalog`     | MF remote: product catalog       |
-| `react-mf-shop-cart`        | MF remote: shopping cart         |
-| `react-mf-shop-shared`      | MF shared libraries              |
-| `react-mf-shop-e2e`         | MF system E2E tests              |
+| Name                    | Description                |
+| ----------------------- | -------------------------- |
+| `react-mf-shop-shell`   | MF host application        |
+| `react-mf-shop-catalog` | MF remote: product catalog |
+| `react-mf-shop-cart`    | MF remote: shopping cart   |
+| `react-mf-shop-shared`  | MF shared libraries        |
+| `react-mf-shop-e2e`     | MF system E2E tests        |
 
 ### Nx Workspaces
 
-| Name                        | Description                      |
-| --------------------------- | -------------------------------- |
-| `react-nx-enterprise`       | React Nx monorepo                |
-| `angular-nx-enterprise`     | Angular Nx monorepo              |
+| Name                    | Description         |
+| ----------------------- | ------------------- |
+| `react-nx-enterprise`   | React Nx monorepo   |
+| `angular-nx-enterprise` | Angular Nx monorepo |
 
 ## Rules
 

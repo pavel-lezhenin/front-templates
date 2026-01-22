@@ -57,19 +57,19 @@ describe('calculateDiscount', () => {
   it('applies 10% discount for orders over $100', () => {
     // Arrange
     const order = { total: 150 };
-    
+
     // Act
     const result = calculateDiscount(order);
-    
+
     // Assert
     expect(result).toBe(15);
   });
-  
+
   it('returns 0 for orders under $100', () => {
     const order = { total: 50 };
     expect(calculateDiscount(order)).toBe(0);
   });
-  
+
   it('throws for negative totals', () => {
     const order = { total: -10 };
     expect(() => calculateDiscount(order)).toThrow('Invalid total');
@@ -85,7 +85,7 @@ describe('LoginForm', () => {
   it('submits credentials when valid', async () => {
     const onSubmit = vi.fn();
     render(<LoginForm onSubmit={onSubmit} />);
-    
+
     await userEvent.type(
       screen.getByLabelText(/email/i),
       'test@example.com'
@@ -97,16 +97,16 @@ describe('LoginForm', () => {
     await userEvent.click(
       screen.getByRole('button', { name: /login/i })
     );
-    
+
     expect(onSubmit).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'password123',
     });
   });
-  
+
   it('shows error for invalid email', async () => {
     render(<LoginForm onSubmit={vi.fn()} />);
-    
+
     await userEvent.type(
       screen.getByLabelText(/email/i),
       'invalid-email'
@@ -114,7 +114,7 @@ describe('LoginForm', () => {
     await userEvent.click(
       screen.getByRole('button', { name: /login/i })
     );
-    
+
     expect(screen.getByText(/invalid email/i)).toBeInTheDocument();
   });
 });
@@ -126,21 +126,24 @@ describe('LoginForm', () => {
 // ✅ GOOD: User journey, resilient selectors
 test('user can complete checkout', async ({ page }) => {
   await page.goto('/products');
-  
+
   // Add product to cart
-  await page.getByRole('button', { name: /add to cart/i }).first().click();
-  
+  await page
+    .getByRole('button', { name: /add to cart/i })
+    .first()
+    .click();
+
   // Go to cart
   await page.getByRole('link', { name: /cart/i }).click();
   await expect(page.getByText(/1 item/i)).toBeVisible();
-  
+
   // Checkout
   await page.getByRole('button', { name: /checkout/i }).click();
-  
+
   // Fill form
   await page.getByLabel(/email/i).fill('test@example.com');
   await page.getByRole('button', { name: /place order/i }).click();
-  
+
   // Confirm
   await expect(page.getByText(/order confirmed/i)).toBeVisible();
 });
@@ -177,19 +180,19 @@ describe('formatPrice', () => {
   it('formats positive amounts', () => {
     expect(formatPrice(100)).toBe('$1.00');
   });
-  
+
   it('formats zero', () => {
     expect(formatPrice(0)).toBe('$0.00');
   });
-  
+
   it('handles large amounts', () => {
     expect(formatPrice(100000000)).toBe('$1,000,000.00');
   });
-  
+
   it('throws for negative amounts', () => {
     expect(() => formatPrice(-100)).toThrow();
   });
-  
+
   it('handles decimal precision', () => {
     expect(formatPrice(999)).toBe('$9.99');
   });
@@ -239,6 +242,7 @@ afterEach(() => {
 ## Test Review: {Package/Feature Name}
 
 ### Coverage Summary
+
 - Statements: {X}% (target: 80%)
 - Branches: {X}% (target: 75%)
 - Functions: {X}% (target: 80%)
@@ -247,19 +251,24 @@ afterEach(() => {
 ### Gaps Identified
 
 #### Critical (Must Fix)
+
 - {Untested critical path}
 
 #### Important (Should Fix)
+
 - {Missing edge case}
 
 #### Nice to Have
+
 - {Additional coverage}
 
 ### Quality Issues
+
 - {Flaky test}
 - {Implementation testing}
 
 ### Recommendations
+
 1. {Specific test to add}
 2. {Refactoring suggestion}
 

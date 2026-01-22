@@ -102,11 +102,11 @@ const productParamsSchema = z.object({
 export function useProductParams() {
   const params = useParams();
   const result = productParamsSchema.safeParse(params);
-  
+
   if (!result.success) {
     throw new Error('Invalid product ID');
   }
-  
+
   return result.data;
 }
 
@@ -121,11 +121,9 @@ const productFiltersSchema = z.object({
 
 export function useProductFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  const filters = productFiltersSchema.parse(
-    Object.fromEntries(searchParams)
-  );
-  
+
+  const filters = productFiltersSchema.parse(Object.fromEntries(searchParams));
+
   const setFilters = (updates: Partial<z.infer<typeof productFiltersSchema>>) => {
     const newParams = new URLSearchParams(searchParams);
     Object.entries(updates).forEach(([key, value]) => {
@@ -137,7 +135,7 @@ export function useProductFilters() {
     });
     setSearchParams(newParams);
   };
-  
+
   return { filters, setFilters };
 }
 ```
@@ -159,7 +157,7 @@ export const routes = {
 
 export function useTypedNavigate() {
   const navigate = useNavigate();
-  
+
   return {
     toHome: () => navigate(routes.home),
     toProducts: () => navigate(routes.products),
@@ -172,7 +170,7 @@ export function useTypedNavigate() {
 // Usage
 function ProductCard({ product }: { product: Product }) {
   const nav = useTypedNavigate();
-  
+
   return (
     <div onClick={() => nav.toProduct(product.id)}>
       {product.name}
@@ -234,7 +232,7 @@ export const dashboardRoutes: Routes = [
 
 ```typescript
 // Automatic chunk naming with Vite
-const ProductsPage = lazy(() => 
+const ProductsPage = lazy(() =>
   import(/* webpackChunkName: "products" */ '@/pages/products')
 );
 
@@ -245,7 +243,7 @@ function NavLink({ to, children }: NavLinkProps) {
       import('@/pages/products');
     }
   };
-  
+
   return (
     <Link to={to} onMouseEnter={preload}>
       {children}

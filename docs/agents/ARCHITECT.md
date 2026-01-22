@@ -65,13 +65,13 @@ Frontend Architecture Expert specializing in scalable application design.
 // ❌ VIOLATION
 function ProductPage() {
   const [products, setProducts] = useState([]);
-  
+
   useEffect(() => {
     fetch('/api/products').then(/* ... */);
   }, []);
-  
+
   const filteredProducts = products.filter(/* complex logic */);
-  
+
   return <div>{/* render */}</div>;
 }
 
@@ -141,20 +141,25 @@ export function calculateDiscount(product, user) {
 ## Architecture Review: {Component/Feature Name}
 
 ### Summary
+
 {Overall assessment}
 
 ### Findings
 
 #### ✅ Compliant
+
 - {What's done well}
 
 #### ⚠️ Warnings
+
 - {Minor issues}
 
 #### ❌ Violations
+
 - {Critical issues}
 
 ### Recommendations
+
 1. {Actionable fix}
 2. {Actionable fix}
 

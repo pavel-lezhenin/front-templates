@@ -2,11 +2,11 @@
 
 ## Core Web Vitals
 
-| Metric | Target | Measures |
-|--------|--------|----------|
-| LCP | < 2.5s | Largest content paint |
-| INP | < 200ms | Interaction to Next Paint |
-| CLS | < 0.1 | Cumulative layout shift |
+| Metric | Target  | Measures                  |
+| ------ | ------- | ------------------------- |
+| LCP    | < 2.5s  | Largest content paint     |
+| INP    | < 200ms | Interaction to Next Paint |
+| CLS    | < 0.1   | Cumulative layout shift   |
 
 ## Bundle Optimization
 
@@ -17,14 +17,10 @@
 const ProductsPage = lazy(() => import('@/pages/products'));
 
 // Component-based
-const HeavyChart = lazy(() => 
-  import('./HeavyChart').then(m => ({ default: m.HeavyChart }))
-);
+const HeavyChart = lazy(() => import('./HeavyChart').then((m) => ({ default: m.HeavyChart })));
 
 // Named chunks for debugging
-const AdminPanel = lazy(() => 
-  import(/* webpackChunkName: "admin" */ '@/pages/admin')
-);
+const AdminPanel = lazy(() => import(/* webpackChunkName: "admin" */ '@/pages/admin'));
 ```
 
 ### Tree Shaking
@@ -109,10 +105,7 @@ const handleClick = useCallback(() => {
 // 2. Referential equality in deps
 // 3. Context values
 
-const sortedItems = useMemo(
-  () => [...items].sort((a, b) => a.price - b.price),
-  [items]
-);
+const sortedItems = useMemo(() => [...items].sort((a, b) => a.price - b.price), [items]);
 ```
 
 ## List Virtualization
@@ -202,7 +195,9 @@ import Image from 'next/image';
 
 ```tsx
 // Link prefetch
-<Link to="/products" prefetch="intent">Products</Link>
+<Link to="/products" prefetch="intent">
+  Products
+</Link>;
 
 // Manual prefetch
 function NavLink({ to }: { to: string }) {
@@ -231,11 +226,7 @@ function ProductList() {
     });
   };
 
-  return (
-    <div onMouseEnter={() => prefetchProduct(product.id)}>
-      {product.name}
-    </div>
-  );
+  return <div onMouseEnter={() => prefetchProduct(product.id)}>{product.name}</div>;
 }
 ```
 

@@ -12,7 +12,7 @@ function ProductPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [cart, setCart] = useState([]);
-  
+
   useEffect(() => {
     setLoading(true);
     fetch('/api/products')
@@ -22,12 +22,12 @@ function ProductPage() {
         setLoading(false);
       });
   }, []);
-  
+
   const addToCart = (product) => {
     setCart([...cart, product]);
     localStorage.setItem('cart', JSON.stringify([...cart, product]));
   };
-  
+
   return (
     <div>
       <header>...</header>
@@ -65,9 +65,9 @@ function ProductPage() {
 // Widget handles its own data
 function ProductCatalog() {
   const { products, isLoading } = useProducts();
-  
+
   if (isLoading) return <ProductGridSkeleton />;
-  
+
   return (
     <ProductGrid>
       {products.map(p => (
@@ -80,7 +80,7 @@ function ProductCatalog() {
 // Feature handles user interaction
 function ProductCard({ product }) {
   const { addToCart } = useCart();
-  
+
   return (
     <Card>
       <ProductImage src={product.image} />
@@ -139,7 +139,7 @@ One component = one job.
 function UserCard({ user }) {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(user);
-  
+
   // Display logic + Edit logic + Form handling = too much
 }
 
@@ -226,9 +226,11 @@ Depend on abstractions (hooks, services).
 // ❌ BAD: Direct dependency
 function UserList() {
   const [users, setUsers] = useState([]);
-  
+
   useEffect(() => {
-    fetch('/api/users').then(r => r.json()).then(setUsers);
+    fetch('/api/users')
+      .then((r) => r.json())
+      .then(setUsers);
   }, []);
 }
 
@@ -248,12 +250,12 @@ Extract shared logic into hooks/utilities.
 // ✅ Custom hook for reusable logic
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
-  
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedValue(value), delay);
     return () => clearTimeout(timer);
   }, [value, delay]);
-  
+
   return debouncedValue;
 }
 ```
@@ -265,18 +267,12 @@ Simplest solution that works.
 ```typescript
 // ❌ Over-engineered
 const memoizedFilteredSortedPaginatedUsers = useMemo(
-  () => pipe(
-    filter(filterFn),
-    sort(sortFn),
-    paginate(page, size)
-  )(users),
+  () => pipe(filter(filterFn), sort(sortFn), paginate(page, size))(users),
   [users, filterFn, sortFn, page, size]
 );
 
 // ✅ Simple (unless performance requires optimization)
-const filteredUsers = users
-  .filter(u => u.name.includes(search))
-  .slice(0, 10);
+const filteredUsers = users.filter((u) => u.name.includes(search)).slice(0, 10);
 ```
 
 ### Immutability
@@ -294,7 +290,7 @@ function addItem(cart, item) {
 function addItem(cart, item) {
   return {
     ...cart,
-    items: [...cart.items, item]
+    items: [...cart.items, item],
   };
 }
 ```
@@ -319,7 +315,7 @@ function useEnhancedForm() {
   const form = useForm();
   const validation = useValidation();
   const submission = useSubmission();
-  
+
   return { ...form, ...validation, ...submission };
 }
 ```

@@ -1,16 +1,13 @@
-name: Monorepo CI
+name: Feature Branch CI
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches-ignore: [main]
 
 permissions:
   contents: read
   pull-requests: write
   actions: read
-  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,30 +31,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Lint
-        run: pnpm lint
-
       - name: Format check
         run: pnpm format:check
 
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
+      - name: Lint
+        run: pnpm lint
 
       - name: Security audit
         run: pnpm audit --audit-level=high
@@ -66,7 +44,7 @@ jobs:
       - name: Gitleaks scan
         uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   detect-changes:
     runs-on: ubuntu-latest
@@ -97,7 +75,7 @@ jobs:
           fi
 
   trigger-submodule-ci:
-    needs: [root-checks, security, detect-changes]
+    needs: [root-checks, detect-changes]
     if: needs.detect-changes.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     strategy:
@@ -129,13 +107,11 @@ jobs:
         run: |
           echo "⏳ Waiting for ${{ matrix.package }} CI..."
           
-          # Wait a bit for the workflow to start
           sleep 30
           
           for i in {1..30}; do
             echo "Checking... ($i/30)"
             
-            # Get latest workflow run triggered by repository_dispatch
             RESPONSE=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/runs \
               -q '.workflow_runs | map(select(.event == "repository_dispatch")) | .[0] | {status, conclusion}' 2>/dev/null || echo '{}')
             
@@ -162,14 +138,54 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
-  notify-success:
-    needs: [root-checks, security, detect-changes, wait-for-submodule-ci]
+  create-pull-request:
+    needs: [root-checks, detect-changes, wait-for-submodule-ci]
     if: |
       always() && 
-      needs.root-checks.result == 'success' && 
-      needs.security.result == 'success' &&
-      (needs.detect-changes.outputs.has_changes != 'true' || needs.wait-for-submodule-ci.result == 'success')
+      needs.root-checks.result == 'success' &&
+      (needs.detect-changes.outputs.has_changes != 'true' || needs.wait-for-submodule-ci.result == 'success') &&
+      !contains(github.event.head_commit.message, '[skip-pr]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT || github.token }}
+          fetch-depth: 0
+
+      - name: Create Pull Request
+        run: |
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          
+          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number')
+          
+          if [[ "$EXISTING_PR" != "null" && "$EXISTING_PR" != "" ]]; then
+            echo "✅ Pull Request already exists: #$EXISTING_PR"
+          else
+            COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+            
+            gh pr create \
+              --title "$COMMIT_MSG" \
+              --body "## 🤖 Auto-generated PR
+
+**Validation Status:**
+- ✅ Root checks passed
+- ✅ Security scan passed
+- ✅ Submodule CI passed (if applicable)
+
+---
+*Generated from commit: ${{ github.sha }}*" \
+              --head "$BRANCH_NAME" \
+              --base "main"
+            
+            echo "🎉 Created Pull Request"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
+
+  notify-success:
+    needs: [root-checks, detect-changes, wait-for-submodule-ci, create-pull-request]
+    if: always() && needs.root-checks.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Success
-        run: echo "✅ All checks passed"
+        run: echo "✅ Feature branch CI completed"
