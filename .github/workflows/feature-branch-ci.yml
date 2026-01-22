@@ -7,18 +7,17 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  actions: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  basic-checks:
+  root-checks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -47,11 +46,104 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
 
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packages: ${{ steps.filter.outputs.changes }}
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed packages
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            react-fsd-starter:
+              - 'packages/react-fsd-starter/**'
+
+      - name: Check if has changes
+        id: check
+        run: |
+          CHANGES='${{ steps.filter.outputs.changes }}'
+          if [[ "$CHANGES" != "[]" && "$CHANGES" != "" ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+  trigger-submodule-ci:
+    needs: [root-checks, detect-changes]
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
+    steps:
+      - name: Trigger submodule CI
+        run: |
+          echo "🚀 Triggering CI for ${{ matrix.package }}"
+          
+          gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/dispatches \
+            -f event_type=parent_trigger \
+            -F client_payload[parent_run_id]=${{ github.run_id }} \
+            -F client_payload[parent_sha]=${{ github.sha }}
+          
+          echo "✅ Dispatch sent to ${{ matrix.package }}"
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+  wait-for-submodule-ci:
+    needs: [detect-changes, trigger-submodule-ci]
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.detect-changes.outputs.packages) }}
+    steps:
+      - name: Wait for submodule CI
+        run: |
+          echo "⏳ Waiting for ${{ matrix.package }} CI..."
+          
+          sleep 30
+          
+          for i in {1..30}; do
+            echo "Checking... ($i/30)"
+            
+            RESPONSE=$(gh api repos/${{ github.repository_owner }}/${{ matrix.package }}/actions/runs \
+              -q '.workflow_runs | map(select(.event == "repository_dispatch")) | .[0] | {status, conclusion}' 2>/dev/null || echo '{}')
+            
+            STATUS=$(echo "$RESPONSE" | jq -r '.status // "pending"')
+            CONCLUSION=$(echo "$RESPONSE" | jq -r '.conclusion // "null"')
+            
+            echo "Status: $STATUS, Conclusion: $CONCLUSION"
+            
+            if [[ "$STATUS" == "completed" ]]; then
+              if [[ "$CONCLUSION" == "success" ]]; then
+                echo "✅ ${{ matrix.package }} CI passed!"
+                exit 0
+              else
+                echo "❌ ${{ matrix.package }} CI failed: $CONCLUSION"
+                exit 1
+              fi
+            fi
+            
+            sleep 20
+          done
+          
+          echo "❌ Timeout waiting for ${{ matrix.package }} CI"
+          exit 1
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
   create-pull-request:
-    needs: [basic-checks]
+    needs: [root-checks, detect-changes, wait-for-submodule-ci]
     if: |
       always() && 
-      needs.basic-checks.result == 'success' &&
+      needs.root-checks.result == 'success' &&
+      (needs.detect-changes.outputs.has_changes != 'true' || needs.wait-for-submodule-ci.result == 'success') &&
       !contains(github.event.head_commit.message, '[skip-pr]')
     runs-on: ubuntu-latest
     steps:
@@ -64,20 +156,24 @@ jobs:
         run: |
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
           
-          # Check if PR already exists
           EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number')
           
           if [[ "$EXISTING_PR" != "null" && "$EXISTING_PR" != "" ]]; then
             echo "✅ Pull Request already exists: #$EXISTING_PR"
           else
             COMMIT_MSG=$(git log -1 --pretty=format:"%s")
-            COMMIT_BODY=$(git log -1 --pretty=format:"%b")
-            
-            PR_BODY="$COMMIT_BODY"$'\n\n'"## 🤖 Auto-generated PR"$'\n\n'"This pull request was automatically created by the CI system."$'\n\n'"**Validation Status:**"$'\n'"- ✅ Security scan passed"$'\n'"- ✅ Code quality checks passed"$'\n\n'"---"$'\n'"*Generated from commit: ${{ github.sha }}*"
             
             gh pr create \
               --title "$COMMIT_MSG" \
-              --body "$PR_BODY" \
+              --body "## 🤖 Auto-generated PR
+
+**Validation Status:**
+- ✅ Root checks passed
+- ✅ Security scan passed
+- ✅ Submodule CI passed (if applicable)
+
+---
+*Generated from commit: ${{ github.sha }}*" \
               --head "$BRANCH_NAME" \
               --base "main"
             
@@ -87,9 +183,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
 
   notify-success:
-    needs: [basic-checks, create-pull-request]
-    if: always() && needs.basic-checks.result == 'success'
+    needs: [root-checks, detect-changes, wait-for-submodule-ci, create-pull-request]
+    if: always() && needs.root-checks.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Success
-        run: echo "✅ Feature branch CI completed successfully"
+        run: echo "✅ Feature branch CI completed"
