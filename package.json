@@ -28,7 +28,9 @@
     "submodule:add": "node scripts/submodule-add.mjs",
     "new": "node scripts/create-package.mjs",
     "affected": "tsx scripts/check-affected.ts",
-    "ci:local": "pnpm format:check && pnpm lint && pnpm submodule:check"
+    "ci:local": "pnpm format:check && pnpm lint && pnpm submodule:check",
+    "setup:protection": "node scripts/setup-branch-protection.mjs",
+    "setup:submodules": "node scripts/setup-submodule-coordination.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
