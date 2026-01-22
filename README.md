@@ -143,6 +143,24 @@ See [docs/agents/](docs/agents/) for agent definitions.
 - [SSR (Next.js)](docs/technology/SSR.md)
 - [Micro-frontends](docs/microfrontends/OVERVIEW.md)
 
+## 🤖 CI/CD & Automation
+
+### Pull Request Automation
+- **System-level PR creation** — Automatic PR generation from feature branches
+- **Submodule coordination** — Integrated CI across monorepo packages  
+- **Security validation** — Automated security and dependency checks
+
+See [docs/ci/PR_AUTOMATION.md](docs/ci/PR_AUTOMATION.md) for complete workflow details.
+
+### Git Workflow
+```bash
+# ⚠️ STRICT: Never work directly in main branch
+git checkout -b feature/your-feature
+# ... make changes ...
+git push origin feature/your-feature
+# 🤖 PR automatically created by CI
+```
+
 ## 🔒 Security
 
 All packages include mandatory security checks:
