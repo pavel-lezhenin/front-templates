@@ -83,7 +83,7 @@ Pages compose components, they don't implement business logic.
 | Server State | TanStack Query              |
 | Forms        | React Hook Form + Zod       |
 | Routing      | React Router v6             |
-| Testing      | Jest + React Testing Library|
+| Testing      | Jest or Vitest + React Testing Library|
 | E2E          | Playwright                  |
 | Mocking      | MSW                         |
 
@@ -96,7 +96,7 @@ Pages compose components, they don't implement business logic.
 | State        | Signals + Services   |
 | Forms        | Reactive Forms       |
 | Routing      | Angular Router       |
-| Testing      | Jest                 |
+| Testing      | Jest or Vitest       |
 | E2E          | Playwright           |
 | Mocking      | MSW                  |
 

@@ -20,6 +20,8 @@
     "lint:fix": "eslint packages --ext .ts,.tsx,.js,.jsx --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "submodule:check": "git submodule foreach 'git status --short && test -z \"$(git status --short)\" || (echo \"Uncommitted changes in $name\" && exit 1)'",
     "submodule:update": "git submodule update --remote --merge",
     "submodule:init": "git submodule update --init --recursive",
@@ -29,6 +31,7 @@
     "ci:local": "pnpm format:check && pnpm lint && pnpm submodule:check"
   },
   "devDependencies": {
+    "@playwright/test": "^1.48.0",
     "@types/node": "^20.0.0",
     "eslint": "^8.57.0",
     "husky": "^9.0.0",
