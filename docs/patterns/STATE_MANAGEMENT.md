@@ -2,271 +2,136 @@
 
 ## Overview
 
-Client state with Zustand, server state with TanStack Query.
+Effective state management requires understanding when to use which type of state.
 
-## Client State (Zustand)
+## State Types
 
-### Basic Store
-
-```typescript
-// src/entities/user/model/user-store.ts
-import { create } from 'zustand';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-interface UserState {
-  user: User | null;
-  setUser: (user: User | null) => void;
-  updateName: (name: string) => void;
-}
-
-export const useUserStore = create<UserState>((set) => ({
-  user: null,
-  setUser: (user) => set({ user }),
-  updateName: (name) =>
-    set((state) => ({
-      user: state.user ? { ...state.user, name } : null,
-    })),
-}));
-```
-
-### Store with Middleware
-
-```typescript
-// src/features/cart/model/cart-store.ts
-import { create } from 'zustand';
-import { persist, devtools } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
-
-interface CartItem {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-}
-
-interface CartState {
-  items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity'>) => void;
-  removeItem: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void;
-  total: () => number;
-}
-
-export const useCartStore = create<CartState>()(
-  devtools(
-    persist(
-      immer((set, get) => ({
-        items: [],
-
-        addItem: (item) =>
-          set((state) => {
-            const existing = state.items.find((i) => i.id === item.id);
-            if (existing) {
-              existing.quantity += 1;
-            } else {
-              state.items.push({ ...item, quantity: 1 });
-            }
-          }),
-
-        removeItem: (id) =>
-          set((state) => {
-            state.items = state.items.filter((i) => i.id !== id);
-          }),
-
-        updateQuantity: (id, quantity) =>
-          set((state) => {
-            const item = state.items.find((i) => i.id === id);
-            if (item) {
-              item.quantity = quantity;
-            }
-          }),
-
-        clearCart: () => set({ items: [] }),
-
-        total: () => get().items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-      })),
-      { name: 'cart-storage' }
-    ),
-    { name: 'CartStore' }
-  )
-);
-```
-
-### Selectors
-
-```typescript
-// Avoid re-renders with selectors
-function CartTotal() {
-  // ❌ BAD: Re-renders when any state changes
-  const { items } = useCartStore();
-  const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-
-  // ✅ GOOD: Only re-renders when total changes
-  const total = useCartStore((state) =>
-    state.items.reduce((sum, i) => sum + i.price * i.quantity, 0)
-  );
-
-  return <span>{total}</span>;
-}
-
-// Shallow comparison for object selection
-import { shallow } from 'zustand/shallow';
-
-function UserInfo() {
-  const { name, email } = useUserStore(
-    (state) => ({ name: state.user?.name, email: state.user?.email }),
-    shallow
-  );
-}
-```
-
-## Server State (TanStack Query)
-
-### Query Hook
-
-```typescript
-// src/entities/product/api/use-products.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productApi } from '@/shared/api';
-
-// Keys factory
-export const productKeys = {
-  all: ['products'] as const,
-  lists: () => [...productKeys.all, 'list'] as const,
-  list: (filters: ProductFilters) => [...productKeys.lists(), filters] as const,
-  details: () => [...productKeys.all, 'detail'] as const,
-  detail: (id: string) => [...productKeys.details(), id] as const,
-};
-
-// Query hook
-export function useProducts(filters: ProductFilters) {
-  return useQuery({
-    queryKey: productKeys.list(filters),
-    queryFn: () => productApi.getProducts(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-}
-
-// Single item
-export function useProduct(id: string) {
-  return useQuery({
-    queryKey: productKeys.detail(id),
-    queryFn: () => productApi.getProduct(id),
-    enabled: !!id,
-  });
-}
-```
-
-### Mutation Hook
-
-```typescript
-// src/features/product/api/use-create-product.ts
-export function useCreateProduct() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: productApi.createProduct,
-    onSuccess: () => {
-      // Invalidate list queries
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-    },
-  });
-}
-
-// Optimistic update
-export function useUpdateProduct() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: productApi.updateProduct,
-    onMutate: async (updated) => {
-      // Cancel outgoing fetches
-      await queryClient.cancelQueries({ queryKey: productKeys.detail(updated.id) });
-
-      // Snapshot previous
-      const previous = queryClient.getQueryData(productKeys.detail(updated.id));
-
-      // Optimistic update
-      queryClient.setQueryData(productKeys.detail(updated.id), updated);
-
-      return { previous };
-    },
-    onError: (_err, variables, context) => {
-      // Rollback
-      if (context?.previous) {
-        queryClient.setQueryData(productKeys.detail(variables.id), context.previous);
-      }
-    },
-    onSettled: (_data, _error, variables) => {
-      // Refetch to ensure consistency
-      queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.id) });
-    },
-  });
-}
-```
-
-## Angular State (Signals)
-
-```typescript
-// src/app/entities/product/product.service.ts
-import { Injectable, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-
-@Injectable({ providedIn: 'root' })
-export class ProductService {
-  private productsSignal = signal<Product[]>([]);
-  private selectedIdSignal = signal<string | null>(null);
-
-  // Public readonly signals
-  readonly products = this.productsSignal.asReadonly();
-  readonly selectedId = this.selectedIdSignal.asReadonly();
-
-  // Computed
-  readonly selectedProduct = computed(() => {
-    const id = this.selectedIdSignal();
-    return this.productsSignal().find((p) => p.id === id) ?? null;
-  });
-
-  readonly totalProducts = computed(() => this.productsSignal().length);
-
-  constructor(private http: HttpClient) {}
-
-  loadProducts() {
-    this.http.get<Product[]>('/api/products').subscribe({
-      next: (products) => this.productsSignal.set(products),
-    });
-  }
-
-  selectProduct(id: string) {
-    this.selectedIdSignal.set(id);
-  }
-
-  addProduct(product: Product) {
-    this.productsSignal.update((products) => [...products, product]);
-  }
-}
-```
+| State Type     | Description                           | Examples                          |
+| -------------- | ------------------------------------- | --------------------------------- |
+| **Server**     | Data from API, cached                 | User profile, products, orders    |
+| **Client**     | UI state, not persisted to server     | Modal open, selected tab, theme   |
+| **URL**        | Shareable, bookmark-able state        | Filters, pagination, search query |
+| **Form**       | Input values, validation errors       | Registration form, checkout       |
+| **Computed**   | Derived from other state              | Cart total, filtered list         |
 
 ## When to Use What
 
-| State Type  | Tool              | Examples                 |
-| ----------- | ----------------- | ------------------------ |
-| Server data | TanStack Query    | API responses, user data |
-| UI state    | Zustand / Signals | Modal open, selected tab |
-| Form state  | React Hook Form   | Form inputs              |
-| URL state   | Router            | Filters, pagination      |
-| Global app  | Zustand           | Theme, auth, cart        |
+| State Type     | React                | Angular              |
+| -------------- | -------------------- | -------------------- |
+| Server data    | TanStack Query       | HttpClient + Signals |
+| UI state       | Zustand              | Signals + Services   |
+| Form state     | React Hook Form      | Reactive Forms       |
+| URL state      | React Router         | Angular Router       |
+| Global app     | Zustand              | Injectable Services  |
+
+## Core Principles
+
+### 1. Separate Server and Client State
+
+Server state has different concerns:
+- **Caching** - Avoid duplicate requests
+- **Staleness** - When to refetch
+- **Background updates** - Keep data fresh
+- **Optimistic updates** - Better UX
+
+### 2. Minimize Global State
+
+Ask before making state global:
+- Is it needed by multiple unrelated components?
+- Does it need to survive navigation?
+- Could it be derived from other state?
+
+### 3. Colocate State
+
+Keep state as close as possible to where it's used:
+
+```
+✅ Component state → useState / signal
+✅ Feature state → Feature store / service  
+✅ App state → Global store / root service
+❌ Everything global → Performance issues
+```
+
+### 4. Immutable Updates
+
+Always create new objects/arrays instead of mutating:
+
+```typescript
+// ❌ Mutation
+state.items.push(newItem);
+
+// ✅ Immutable
+state.items = [...state.items, newItem];
+```
+
+### 5. Selector Performance
+
+Only subscribe to the state you need:
+
+```typescript
+// ❌ Full state subscription - re-renders on any change
+const { items, user, settings } = useStore();
+
+// ✅ Selective subscription - re-renders only when total changes
+const total = useStore(state => state.total);
+```
+
+## State Organization
+
+```
+features/
+├── cart/
+│   └── model/
+│       ├── cart-store.ts      # Client state
+│       └── types.ts
+├── products/
+│   └── api/
+│       └── use-products.ts    # Server state hooks
+└── auth/
+    └── model/
+        └── auth-store.ts      # Auth state
+```
+
+## Computed State
+
+Derive state instead of storing duplicates:
+
+```typescript
+// ❌ Storing computed values
+state = {
+  items: [],
+  total: 0,           // Duplicate!
+  isEmpty: true,      // Duplicate!
+}
+
+// ✅ Computing on read
+state = { items: [] }
+total = computed(() => items.reduce(...))
+isEmpty = computed(() => items.length === 0)
+```
+
+## Persistence
+
+For state that survives page refresh:
+
+| Storage          | Use Case                    | Limits        |
+| ---------------- | --------------------------- | ------------- |
+| localStorage     | Theme, preferences          | 5-10 MB       |
+| sessionStorage   | Temporary session data      | 5-10 MB       |
+| IndexedDB        | Large datasets, offline     | Large         |
+| URL params       | Shareable filters           | ~2000 chars   |
 
 ## Best Practices
 
-1. **Separate server and client state**
-2. **Use query keys factory** - Consistent invalidation
-3. **Selectors for performance** - Avoid re-renders
-4. **Optimistic updates** - Better UX
-5. **Persist important state** - Cart, preferences
+1. **Separate server and client state** - Different tools for different jobs
+2. **Use query keys factory** - Consistent cache invalidation
+3. **Selectors for performance** - Avoid unnecessary re-renders
+4. **Optimistic updates** - Better perceived performance
+5. **Persist important state** - Cart, user preferences
+6. **Avoid prop drilling** - Use context/services for deep trees
+7. **Keep state normalized** - Avoid nested duplicates
+
+## Framework-Specific Implementation
+
+- **React**: [Zustand + TanStack Query patterns](../framework/react/patterns/STATE_MANAGEMENT.md)
+- **Angular**: [Signals + Services patterns](../framework/angular/patterns/STATE_MANAGEMENT.md)

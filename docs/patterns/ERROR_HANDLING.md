@@ -1,180 +1,163 @@
 # Error Handling Patterns
 
-## Overview
+> General error handling concepts and principles. For framework-specific implementations see:
+> - [React Error Handling](../framework/react/patterns/ERROR_HANDLING.md) - Error Boundaries + TanStack Query
+> - [Angular Error Handling](../framework/angular/patterns/ERROR_HANDLING.md) - HttpInterceptor + Services
 
-Centralized error handling for consistent user experience.
+## Error Categories
 
-## Error Boundaries (React)
+### By Source
 
-```tsx
-// src/shared/ui/error-boundary/ErrorBoundary.tsx
-import { Component, ErrorInfo, ReactNode } from 'react';
+| Category | Examples | Handling |
+|----------|----------|----------|
+| Network | Connection lost, timeout | Retry with backoff, offline mode |
+| API | 4xx/5xx responses | Parse error, show message |
+| Validation | Invalid input | Show field errors |
+| Runtime | Null reference, type error | Error boundary, logging |
+| Business | Insufficient funds | User-friendly message |
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
-}
+### By Severity
 
-interface State {
-  hasError: boolean;
-  error: Error | null;
-}
+| Severity | Action | User Impact |
+|----------|--------|-------------|
+| Fatal | Crash recovery UI | Full page error |
+| Error | Show error, allow retry | Component-level error |
+| Warning | Show warning, continue | Toast/notification |
+| Info | Log only | None |
 
-export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null };
+## Error Response Structure
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
+Standard API error format:
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    this.props.onError?.(error, errorInfo);
-    // Log to monitoring service
-    console.error('Error caught:', error, errorInfo);
-  }
-
-  render(): ReactNode {
-    if (this.state.hasError) {
-      return this.props.fallback ?? <DefaultErrorFallback error={this.state.error} />;
+\\\json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Invalid input data",
+  "status": 400,
+  "details": {
+    "fields": {
+      "email": ["Email already exists"],
+      "password": ["Must be at least 8 characters"]
     }
-    return this.props.children;
-  }
-}
-
-function DefaultErrorFallback({ error }: { error: Error | null }) {
-  return (
-    <div role="alert" className="error-container">
-      <h2>Something went wrong</h2>
-      <pre>{error?.message}</pre>
-      <button onClick={() => window.location.reload()}>Reload page</button>
-    </div>
-  );
-}
-```
-
-## API Error Handling
-
-```typescript
-// src/shared/api/errors.ts
-export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly code: string,
-    message: string,
-    public readonly details?: Record<string, unknown>
-  ) {
-    super(message);
-    this.name = 'ApiError';
-  }
-
-  static isApiError(error: unknown): error is ApiError {
-    return error instanceof ApiError;
-  }
-}
-
-export class NetworkError extends Error {
-  constructor(message = 'Network error') {
-    super(message);
-    this.name = 'NetworkError';
-  }
-}
-
-export class ValidationError extends ApiError {
-  constructor(public readonly fields: Record<string, string[]>) {
-    super(400, 'VALIDATION_ERROR', 'Validation failed', { fields });
-    this.name = 'ValidationError';
-  }
-}
-```
-
-## TanStack Query Error Handling
-
-```typescript
-// src/shared/api/query-client.ts
-import { QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
-import { toast } from '@/shared/ui';
-
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: (failureCount, error) => {
-        if (ApiError.isApiError(error) && error.status === 401) {
-          return false; // Don't retry auth errors
-        }
-        return failureCount < 3;
-      },
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
   },
-  queryCache: new QueryCache({
-    onError: (error, query) => {
-      // Only show toast for queries that have data
-      // (background refetch errors)
-      if (query.state.data !== undefined) {
-        toast.error(`Background update failed: ${error.message}`);
-      }
-    },
-  }),
-  mutationCache: new MutationCache({
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  }),
-});
-```
-
-## Form Error Handling
-
-```typescript
-// src/shared/lib/form-errors.ts
-import { FieldErrors, FieldValues } from 'react-hook-form';
-import { ValidationError } from '@/shared/api';
-
-export function mapApiErrorsToForm<T extends FieldValues>(error: ValidationError): FieldErrors<T> {
-  const errors: Record<string, { type: string; message: string }> = {};
-
-  for (const [field, messages] of Object.entries(error.fields)) {
-    errors[field] = {
-      type: 'server',
-      message: messages[0] ?? 'Invalid value',
-    };
-  }
-
-  return errors as FieldErrors<T>;
+  "timestamp": "2024-01-15T10:30:00Z",
+  "requestId": "req_abc123"
 }
-```
+\\\
 
-## Angular Error Handling
+## HTTP Status Handling
 
-```typescript
-// src/app/core/interceptors/error.interceptor.ts
-import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
-import { ToastService } from '@/shared/ui';
+| Status | Category | User Message | Action |
+|--------|----------|--------------|--------|
+| 400 | Validation | Show field errors | None |
+| 401 | Auth | "Session expired" | Redirect to login |
+| 403 | Permission | "Access denied" | Show explanation |
+| 404 | Not Found | "Item not found" | Navigate back |
+| 429 | Rate Limit | "Too many requests" | Show cooldown |
+| 500 | Server | "Something went wrong" | Retry option |
+| 503 | Unavailable | "Service maintenance" | Show status page |
 
-export const errorInterceptor: HttpInterceptorFn = (req, next) => {
-  const toast = inject(ToastService);
+## Error Boundary Principles
 
-  return next(req).pipe(
-    catchError((error: HttpErrorResponse) => {
-      if (error.status === 401) {
-        // Handle unauthorized
-      } else if (error.status >= 500) {
-        toast.error('Server error. Please try again later.');
-      }
+### Component Tree
+\\\
+App
+├── GlobalErrorBoundary (catches unrecoverable errors)
+│   ├── Header
+│   ├── Content
+│   │   ├── FeatureErrorBoundary (isolates feature errors)
+│   │   │   └── Feature Component
+│   │   └── FeatureErrorBoundary
+│   │       └── Another Feature
+│   └── Footer
+\\\
 
-      return throwError(() => error);
-    })
-  );
-};
-```
+### Granularity Guidelines
 
-## Best Practices
+| Level | Catches | Fallback |
+|-------|---------|----------|
+| App | Fatal crashes | Full-page error |
+| Route | Page errors | Error page |
+| Feature | Feature errors | Feature placeholder |
+| Component | Render errors | Inline error |
 
-1. **Always type errors** - Use custom error classes
-2. **User-friendly messages** - Don't expose technical details
-3. **Recoverable actions** - Provide retry or alternative
-4. **Log for debugging** - Send to monitoring service
-5. **Graceful degradation** - App should continue working
+## Retry Strategies
+
+### Exponential Backoff
+
+\\\
+Attempt 1: Wait 1s
+Attempt 2: Wait 2s
+Attempt 3: Wait 4s
+Attempt 4: Wait 8s (cap at max)
+\\\
+
+### Retry Decision Tree
+
+\\\
+Error occurred →
+  ├─ Network error → Retry with backoff
+  ├─ 5xx error → Retry with backoff
+  ├─ 429 error → Wait for Retry-After header
+  ├─ 4xx error → Don't retry (client error)
+  └─ Timeout → Retry once
+\\\
+
+## User Experience
+
+### Error Message Guidelines
+
+- Be specific: What went wrong
+- Be helpful: How to fix it
+- Be human: No technical jargon
+- Provide action: Clear next step
+
+**Bad:** \Error: ECONNREFUSED\
+**Good:** "We couldn't reach the server. Please check your connection and try again."
+
+### Loading vs Error States
+
+\\\
+Initial → Loading → Success
+                 → Error → Retry → Loading → ...
+\\\
+
+Always show:
+1. What went wrong (briefly)
+2. What the user can do (retry, go back, contact support)
+
+## Logging & Monitoring
+
+### What to Log
+
+| Level | Include |
+|-------|---------|
+| Error | Stack trace, user context, request ID |
+| Warning | Message, context |
+| Info | Action, result |
+
+### Log Structure
+
+\\\json
+{
+  "level": "error",
+  "message": "Failed to load products",
+  "error": { "name": "NetworkError", "message": "..." },
+  "context": {
+    "userId": "user_123",
+    "requestId": "req_456",
+    "url": "/api/products",
+    "timestamp": "2024-01-15T10:30:00Z"
+  }
+}
+\\\
+
+## Anti-Patterns
+
+| ❌ Avoid | ✅ Prefer |
+|----------|----------|
+| Swallowing errors silently | Log and handle appropriately |
+| Technical error messages | User-friendly messages |
+| Alert dialogs for all errors | Inline/toast based on severity |
+| Crashing entire app | Error boundaries at feature level |
+| Retrying 4xx errors | Only retry network/server errors |
