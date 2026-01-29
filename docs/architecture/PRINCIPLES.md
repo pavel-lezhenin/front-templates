@@ -1,99 +1,87 @@
 # Architecture Principles
 
+> General architecture concepts. For framework-specific examples see:
+> - [React Patterns](../framework/react/patterns/)
+> - [Angular Patterns](../framework/angular/patterns/)
+
 ## Core Principle: UI Layer
 
 > **Pages = Orchestration, NOT Logic**
 
 ### The Problem
 
-```typescript
+\\\
 // ❌ BAD: Page doing everything
-function ProductPage() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [cart, setCart] = useState([]);
-
-  useEffect(() => {
-    setLoading(true);
-    fetch('/api/products')
-      .then(res => res.json())
-      .then(data => {
-        setProducts(data);
-        setLoading(false);
-      });
-  }, []);
-
-  const addToCart = (product) => {
-    setCart([...cart, product]);
-    localStorage.setItem('cart', JSON.stringify([...cart, product]));
-  };
-
-  return (
-    <div>
-      <header>...</header>
-      {loading ? <Spinner /> : (
-        <div className="grid">
-          {products.map(p => (
-            <div key={p.id} className="card">
-              <img src={p.image} />
-              <h3>{p.name}</h3>
-              <p>{p.price}</p>
-              <button onClick={() => addToCart(p)}>Add</button>
-            </div>
-          ))}
+Page {
+  state: products, loading, cart
+  
+  onInit() {
+    loading = true
+    products = fetch('/api/products')
+    loading = false
+  }
+  
+  addToCart(product) {
+    cart.add(product)
+    storage.save('cart', cart)
+  }
+  
+  render() {
+    <header>...</header>
+    if loading: <Spinner />
+    else: 
+      for product in products:
+        <div class="card">
+          <img src={product.image} />
+          <h3>{product.name}</h3>
+          <button onClick={addToCart}>Add</button>
         </div>
-      )}
-      <footer>...</footer>
-    </div>
-  );
+    <footer>...</footer>
+  }
 }
-```
+\\\
 
 ### The Solution
 
-```typescript
+\\\
 // ✅ GOOD: Page orchestrates
-function ProductPage() {
-  return (
+Page {
+  render() {
     <MainLayout>
       <ProductCatalog />
       <CartSidebar />
     </MainLayout>
-  );
+  }
 }
 
 // Widget handles its own data
-function ProductCatalog() {
-  const { products, isLoading } = useProducts();
-
-  if (isLoading) return <ProductGridSkeleton />;
-
-  return (
-    <ProductGrid>
-      {products.map(p => (
-        <ProductCard key={p.id} product={p} />
-      ))}
-    </ProductGrid>
-  );
+Widget ProductCatalog {
+  products, isLoading = useProductsQuery()
+  
+  if isLoading: return <ProductGridSkeleton />
+  
+  return <ProductGrid>
+    for product in products:
+      <ProductCard product={product} />
+  </ProductGrid>
 }
 
 // Feature handles user interaction
-function ProductCard({ product }) {
-  const { addToCart } = useCart();
-
-  return (
-    <Card>
-      <ProductImage src={product.image} />
-      <ProductInfo product={product} />
-      <AddToCartButton onClick={() => addToCart(product)} />
-    </Card>
-  );
+Feature ProductCard {
+  input: product
+  cartService = inject(CartService)
+  
+  return <Card>
+    <ProductImage src={product.image} />
+    <ProductInfo product={product} />
+    <AddToCartButton onClick={() => cartService.add(product)} />
+  </Card>
 }
-```
+\\\
 
 ### Layer Hierarchy
 
-```
+\\\
 ┌─────────────────────────────────────────────────────────────────┐
 │                           PAGES                                  │
 │                     (Orchestration)                              │
@@ -124,9 +112,9 @@ function ProductCard({ product }) {
                     │ • UI Kit          │
                     │ • Utilities       │
                     │ • API client      │
-                    │ • Hooks           │
+                    │ • Hooks/Services  │
                     └───────────────────┘
-```
+\\\
 
 ## SOLID in Frontend
 
@@ -134,78 +122,72 @@ function ProductCard({ product }) {
 
 One component = one job.
 
-```typescript
+\\\
 // ❌ BAD: Multiple responsibilities
-function UserCard({ user }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState(user);
-
+Component UserCard {
+  state: isEditing, formData
   // Display logic + Edit logic + Form handling = too much
 }
 
 // ✅ GOOD: Separated
-function UserCard({ user }) {
-  return <UserInfo user={user} />;
+Component UserCard {
+  render() { <UserInfo user={user} /> }
 }
 
-function UserEditForm({ user, onSave }) {
+Component UserEditForm {
   // Only form handling
 }
-```
+\\\
 
 ### Open/Closed
 
 Extend via composition, not modification.
 
-```typescript
+\\\
 // ✅ GOOD: Composable
-function Button({ variant, size, leftIcon, children, ...props }) {
-  return (
-    <button className={cn(styles[variant], styles[size])} {...props}>
-      {leftIcon && <span className={styles.icon}>{leftIcon}</span>}
+Component Button {
+  input: variant, size, leftIcon, children
+  
+  render() {
+    <button class={[styles[variant], styles[size]]}>
+      if leftIcon: <span class="icon">{leftIcon}</span>
       {children}
     </button>
-  );
+  }
 }
 
 // Usage - extended without modifying Button
 <Button variant="primary" leftIcon={<SaveIcon />}>
   Save
 </Button>
-```
+\\\
 
 ### Liskov Substitution
 
 Components with same interface are interchangeable.
 
-```typescript
+\\\
 // Both can be used anywhere expecting a Button
 <Button onClick={save}>Save</Button>
 <IconButton onClick={save} icon={<SaveIcon />} />
-```
+\\\
 
 ### Interface Segregation
 
 Small, focused prop interfaces.
 
-```typescript
+\\\
 // ❌ BAD: Too many props
 interface CardProps {
-  title: string;
-  subtitle: string;
-  image: string;
-  actions: Action[];
-  onEdit: () => void;
-  onDelete: () => void;
-  onShare: () => void;
-  isEditable: boolean;
-  isDeletable: boolean;
+  title, subtitle, image, actions[]
+  onEdit, onDelete, onShare
+  isEditable, isDeletable
   // ... 20 more props
 }
 
 // ✅ GOOD: Composed
 interface CardProps {
-  children: React.ReactNode;
+  children
 }
 
 <Card>
@@ -216,115 +198,117 @@ interface CardProps {
     <DeleteButton onClick={onDelete} />
   </CardActions>
 </Card>
-```
+\\\
 
 ### Dependency Inversion
 
-Depend on abstractions (hooks, services).
+Depend on abstractions (hooks, services), not implementations.
 
-```typescript
+\\\
 // ❌ BAD: Direct dependency
-function UserList() {
-  const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    fetch('/api/users')
-      .then((r) => r.json())
-      .then(setUsers);
-  }, []);
+Component UserList {
+  onInit() {
+    users = fetch('/api/users')  // Direct API call
+  }
 }
 
 // ✅ GOOD: Abstraction
-function UserList() {
-  const { users } = useUsers(); // Hook handles implementation
+Component UserList {
+  users = inject(UserService).getUsers()  // Service handles implementation
+  // or: users = useUsersQuery()           // Hook handles implementation
 }
-```
+\\\
 
 ## Other Principles
 
 ### DRY (Don't Repeat Yourself)
 
-Extract shared logic into hooks/utilities.
+Extract shared logic into hooks/utilities/services.
 
-```typescript
-// ✅ Custom hook for reusable logic
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-
-  return debouncedValue;
+\\\
+// ✅ Reusable utility for debouncing
+function useDebounce(value, delay) {
+  state: debouncedValue = value
+  
+  onValueChange() {
+    timer = setTimeout(() => debouncedValue = value, delay)
+    cleanup: clearTimeout(timer)
+  }
+  
+  return debouncedValue
 }
-```
+\\\
 
 ### KISS (Keep It Simple)
 
 Simplest solution that works.
 
-```typescript
+\\\
 // ❌ Over-engineered
-const memoizedFilteredSortedPaginatedUsers = useMemo(
-  () => pipe(filter(filterFn), sort(sortFn), paginate(page, size))(users),
-  [users, filterFn, sortFn, page, size]
-);
+memoizedResult = memoize(
+  pipe(filter(filterFn), sort(sortFn), paginate(page, size))(users)
+)
 
 // ✅ Simple (unless performance requires optimization)
-const filteredUsers = users.filter((u) => u.name.includes(search)).slice(0, 10);
-```
+filteredUsers = users
+  .filter(u => u.name.includes(search))
+  .slice(0, 10)
+\\\
 
 ### Immutability
 
 Prefer immutable operations.
 
-```typescript
+\\\
 // ❌ Mutation
 function addItem(cart, item) {
-  cart.items.push(item);
-  return cart;
+  cart.items.push(item)  // Mutates original
+  return cart
 }
 
 // ✅ Immutable
 function addItem(cart, item) {
   return {
     ...cart,
-    items: [...cart.items, item],
-  };
+    items: [...cart.items, item]
+  }
 }
-```
+\\\
 
 ### Composition over Inheritance
 
-React: use composition and hooks.
-Angular: use services and composition.
+Use composition and dependency injection.
 
-```typescript
-// ✅ Composition
-function EnhancedButton(props) {
-  return (
-    <Tooltip content={props.tooltip}>
+\\\
+// ✅ Component composition
+Component EnhancedButton {
+  render() {
+    <Tooltip content={tooltip}>
       <Button {...props} />
     </Tooltip>
-  );
+  }
 }
 
-// ✅ Hook composition
+// ✅ Service/Hook composition
 function useEnhancedForm() {
-  const form = useForm();
-  const validation = useValidation();
-  const submission = useSubmission();
-
-  return { ...form, ...validation, ...submission };
+  form = useForm()
+  validation = useValidation()
+  submission = useSubmission()
+  
+  return { ...form, ...validation, ...submission }
 }
-```
+\\\
 
 ## Applying to Architectures
 
 ### FSD (Feature-Sliced Design)
 
-Naturally follows UI Layer principle with explicit layers.
+Naturally follows UI Layer principle with explicit layers:
+- pages/ → orchestration only
+- widgets/ → composite UI blocks
+- features/ → user interactions
+- entities/ → domain models
+- shared/ → foundation
 
 ### Modular
 
@@ -333,10 +317,14 @@ Modules contain features. Pages import and compose modules.
 ### Atomic
 
 Atoms → Molecules → Organisms → Templates → Pages
+
 Pages use Templates, don't build from Atoms directly.
 
-### Angular
+### Smart vs Presentational
 
-- Smart containers (Pages) vs Presentational components
-- Services handle business logic
-- Components compose
+| Type | Responsibility | Data |
+|------|---------------|------|
+| Smart (Container) | Orchestration, data fetching | Knows about state/services |
+| Presentational | Pure rendering | Only props/inputs |
+
+Pages = Smart containers that compose Presentational components.
