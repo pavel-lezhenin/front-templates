@@ -375,3 +375,13 @@ export class ProductCardComponent {
 3. **Not using trackBy** - DOM thrashing
 4. **Constructor over inject()** - Verbose code
 5. **NgModule for new projects** - Use standalone
+
+## Related Patterns
+
+- [Routing](./patterns/ROUTING.md)
+- [State Management](./patterns/STATE_MANAGEMENT.md)
+- [Forms](./patterns/FORMS.md)
+- [Error Handling](./patterns/ERROR_HANDLING.md)
+- [Authentication](./patterns/AUTHENTICATION.md)
+- [Performance](./patterns/PERFORMANCE.md)
+- [API Mocking](./patterns/API_MOCKING.md)

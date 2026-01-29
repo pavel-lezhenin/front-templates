@@ -272,3 +272,14 @@ src/
 3. **Object/array in deps** - Infinite loops
 4. **Not using Error Boundaries** - Crash entire app
 5. **Over-memoization** - Premature optimization
+
+## Related Patterns
+
+- [Routing](./patterns/ROUTING.md)
+- [State Management](./patterns/STATE_MANAGEMENT.md)
+- [Forms](./patterns/FORMS.md)
+- [Error Handling](./patterns/ERROR_HANDLING.md)
+- [Authentication](./patterns/AUTHENTICATION.md)
+- [Performance](./patterns/PERFORMANCE.md)
+- [Accessibility](./patterns/ACCESSIBILITY.md)
+- [API Mocking](./patterns/API_MOCKING.md)

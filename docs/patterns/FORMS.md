@@ -1,246 +1,273 @@
 # Form Patterns
 
-## Overview
+> General form concepts and principles. For framework-specific implementations see:
+> - [React Forms](../framework/react/patterns/FORMS.md) - React Hook Form + Zod
+> - [Angular Forms](../framework/angular/patterns/FORMS.md) - Reactive Forms + Validators
 
-Type-safe forms with React Hook Form + Zod validation.
+## Core Principles
 
-## Schema Definition
+### 1. Controlled Inputs
+All form inputs should be controlled by form state, not DOM state.
 
-```typescript
-// src/features/user/model/user-schema.ts
-import { z } from 'zod';
+### 2. Schema-First Validation
+Define validation schema separately from UI components for:
+- Reusability across forms
+- Type inference
+- Server/client consistency
 
-export const userSchema = z
-  .object({
-    email: z.string().min(1, 'Email is required').email('Invalid email format'),
-    password: z
-      .string()
-      .min(8, 'Password must be at least 8 characters')
-      .regex(/[A-Z]/, 'Password must contain uppercase letter')
-      .regex(/[0-9]/, 'Password must contain number'),
-    confirmPassword: z.string(),
-    name: z.string().min(2, 'Name must be at least 2 characters'),
-    age: z.coerce.number().min(18, 'Must be 18 or older').optional(),
-    role: z.enum(['admin', 'user', 'guest']),
-    acceptTerms: z.literal(true, {
-      errorMap: () => ({ message: 'You must accept the terms' }),
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: 'Passwords do not match',
-    path: ['confirmPassword'],
-  });
+### 3. Validation Timing
 
-export type UserFormData = z.infer<typeof userSchema>;
-```
+| Event | Use Case |
+|-------|----------|
+| onChange | Real-time feedback (password strength) |
+| onBlur | Standard field validation |
+| onSubmit | Final validation, server round-trip |
 
-## Form Component (React)
+**Recommendation:** Validate on blur + submit for best UX.
 
-```tsx
-// src/features/user/ui/UserForm.tsx
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { userSchema, UserFormData } from '../model/user-schema';
-import { Input, Button, Select, Checkbox } from '@/shared/ui';
+## Validation Patterns
 
-interface UserFormProps {
-  onSubmit: (data: UserFormData) => Promise<void>;
-  defaultValues?: Partial<UserFormData>;
+### Client-Side Validation Rules
+
+| Rule | Example |
+|------|---------|
+| Required | Field must have a value |
+| Min/Max Length | Password 8-128 chars |
+| Pattern | Email format, phone format |
+| Custom | Passwords match, unique username |
+| Async | Email availability check |
+
+### Error Message Guidelines
+
+- Be specific: "Password must be at least 8 characters" not "Invalid password"
+- Be helpful: Suggest how to fix
+- Be accessible: Associate errors with fields via ria-describedby
+
+## Form Architecture
+
+### Simple Forms
+Single-level fields, no dynamic sections.
+
+### Complex Forms
+- Multi-step wizards
+- Dynamic field arrays
+- Conditional fields
+- Nested objects
+
+### Form State Structure
+
+\\\
+FormState {
+  values: Record<string, any>
+  errors: Record<string, string>
+  touched: Record<string, boolean>
+  isSubmitting: boolean
+  isValid: boolean
 }
+\\\
 
-export function UserForm({ onSubmit, defaultValues }: UserFormProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    setError,
-  } = useForm<UserFormData>({
-    resolver: zodResolver(userSchema),
-    defaultValues,
-  });
+## Server-Side Integration
 
-  const handleFormSubmit = async (data: UserFormData) => {
-    try {
-      await onSubmit(data);
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        // Map server errors to form
-        Object.entries(error.fields).forEach(([field, messages]) => {
-          setError(field as keyof UserFormData, {
-            type: 'server',
-            message: messages[0],
-          });
-        });
-      }
-    }
-  };
+### Validation Error Mapping
+Map server validation errors to form field errors:
 
-  return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} noValidate>
-      <Input label="Email" type="email" error={errors.email?.message} {...register('email')} />
-
-      <Input
-        label="Password"
-        type="password"
-        error={errors.password?.message}
-        {...register('password')}
-      />
-
-      <Input
-        label="Confirm Password"
-        type="password"
-        error={errors.confirmPassword?.message}
-        {...register('confirmPassword')}
-      />
-
-      <Input label="Name" error={errors.name?.message} {...register('name')} />
-
-      <Input label="Age" type="number" error={errors.age?.message} {...register('age')} />
-
-      <Select label="Role" error={errors.role?.message} {...register('role')}>
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
-        <option value="guest">Guest</option>
-      </Select>
-
-      <Checkbox
-        label="I accept the terms and conditions"
-        error={errors.acceptTerms?.message}
-        {...register('acceptTerms')}
-      />
-
-      <Button type="submit" isLoading={isSubmitting}>
-        Submit
-      </Button>
-    </form>
-  );
-}
-```
-
-## Reusable Input Component
-
-```tsx
-// src/shared/ui/input/Input.tsx
-import { forwardRef, InputHTMLAttributes } from 'react';
-
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label: string;
-  error?: string;
-}
-
-export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, id, ...props }, ref) => {
-    const inputId = id ?? label.toLowerCase().replace(/\s+/g, '-');
-    const errorId = `${inputId}-error`;
-
-    return (
-      <div className="input-group">
-        <label htmlFor={inputId}>{label}</label>
-        <input
-          ref={ref}
-          id={inputId}
-          aria-invalid={!!error}
-          aria-describedby={error ? errorId : undefined}
-          {...props}
-        />
-        {error && (
-          <span id={errorId} className="error" role="alert">
-            {error}
-          </span>
-        )}
-      </div>
-    );
-  }
-);
-
-Input.displayName = 'Input';
-```
-
-## Dynamic Fields
-
-```tsx
-// Array fields with useFieldArray
-import { useFieldArray, useForm } from 'react-hook-form';
-
-function OrderForm() {
-  const { control, register } = useForm<OrderData>();
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'items',
-  });
-
-  return (
-    <form>
-      {fields.map((field, index) => (
-        <div key={field.id}>
-          <Input label="Product" {...register(`items.${index}.product`)} />
-          <Input label="Quantity" type="number" {...register(`items.${index}.quantity`)} />
-          <Button type="button" onClick={() => remove(index)}>
-            Remove
-          </Button>
-        </div>
-      ))}
-      <Button type="button" onClick={() => append({ product: '', quantity: 1 })}>
-        Add Item
-      </Button>
-    </form>
-  );
-}
-```
-
-## Angular Reactive Forms
-
-```typescript
-// src/app/features/user/user-form.component.ts
-import { Component, inject, output } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CommonModule } from '@angular/common';
-
-@Component({
-  selector: 'app-user-form',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
-  template: `
-    <form [formGroup]="form" (ngSubmit)="onSubmit()">
-      <div class="form-field">
-        <label for="email">Email</label>
-        <input id="email" formControlName="email" />
-        @if (form.get('email')?.errors?.['required'] && form.get('email')?.touched) {
-          <span class="error">Email is required</span>
-        }
-      </div>
-
-      <button type="submit" [disabled]="form.invalid || isSubmitting">
-        {{ isSubmitting ? 'Submitting...' : 'Submit' }}
-      </button>
-    </form>
-  `,
-})
-export class UserFormComponent {
-  private fb = inject(FormBuilder);
-
-  submitted = output<UserFormData>();
-  isSubmitting = false;
-
-  form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(8)]],
-    name: ['', [Validators.required, Validators.minLength(2)]],
-  });
-
-  onSubmit() {
-    if (this.form.valid) {
-      this.submitted.emit(this.form.getRawValue());
-    }
+\\\
+Server Response:
+{
+  "code": "VALIDATION_ERROR",
+  "fields": {
+    "email": ["Email already taken"],
+    "password": ["Too weak"]
   }
 }
-```
 
-## Best Practices
+→ Map to form errors →
 
-1. **Always use validation schemas** - Type-safe, reusable
-2. **Show errors on blur/submit** - Not while typing
-3. **Mark required fields** - Visual indicator
-4. **Accessible errors** - Connected via aria-describedby
-5. **Handle server errors** - Map to form fields
-6. **Disable submit** - While submitting
+Form Errors:
+{
+  "email": "Email already taken",
+  "password": "Too weak"
+}
+\\\
+
+### Optimistic Updates
+For better UX, update UI optimistically and rollback on error.
+
+## Accessibility Checklist
+
+- [ ] Labels associated with inputs (\<label for>\ or wrapping)
+- [ ] Required fields marked (\ria-required\)
+- [ ] Error states announced (\ria-invalid\, \ole="alert"\)
+- [ ] Error messages linked (\ria-describedby\)
+- [ ] Focus management (focus first error on submit failure)
+- [ ] Keyboard navigation works
+
+## Anti-Patterns
+
+| ❌ Avoid | ✅ Prefer |
+|----------|----------|
+| Inline validation logic | Schema-based validation |
+| Validation on every keystroke | Debounced or blur validation |
+| Generic error messages | Specific, actionable messages |
+| Disabled submit until valid | Submit with validation feedback |
+| Alert dialogs for errors | Inline error messages |
+
+## File Structure
+
+\\\
+features/
+  user-registration/
+    model/
+      schema.ts       # Validation schema
+      types.ts        # TypeScript types
+    ui/
+      RegistrationForm.tsx
+      FormField.tsx
+    api/
+      register.ts
+\\\
+"@
+сSet-Content -Path "d:\repos\front-templates\docs\patterns\AUTHENTICATION.md" -Value @"
+# Authentication Patterns
+
+> General authentication concepts and security principles. For framework-specific implementations see:
+> - [React Authentication](../framework/react/patterns/AUTHENTICATION.md) - Context + Router Guards
+> - [Angular Authentication](../framework/angular/patterns/AUTHENTICATION.md) - Signals + Functional Guards
+
+## Core Concepts
+
+### JWT Token Flow
+
+\\\
+1. User submits credentials
+2. Server validates, returns access + refresh tokens
+3. Client stores tokens
+4. Client sends access token with API requests
+5. Server validates token, returns data
+6. On 401, client uses refresh token to get new access token
+7. If refresh fails, redirect to login
+\\\
+
+### Token Types
+
+| Token | Purpose | Lifetime | Storage |
+|-------|---------|----------|---------|
+| Access Token | API authorization | 15-60 min | Memory or localStorage |
+| Refresh Token | Get new access token | 7-30 days | httpOnly cookie (preferred) |
+
+## Security Principles
+
+### Token Storage Options
+
+| Location | XSS Risk | CSRF Risk | Recommendation |
+|----------|----------|-----------|----------------|
+| localStorage | ⚠️ High | ✅ None | Acceptable for low-risk apps |
+| sessionStorage | ⚠️ High | ✅ None | Better (clears on tab close) |
+| httpOnly Cookie | ✅ None | ⚠️ High | Best (with CSRF protection) |
+| Memory | ✅ None | ✅ None | Most secure (lost on refresh) |
+
+**Recommendation:** httpOnly cookies for refresh tokens, memory for access tokens.
+
+### Password Security
+
+- Never store plain-text passwords
+- Use bcrypt/argon2 on server
+- Enforce minimum complexity (8+ chars, mixed case, numbers)
+- Implement rate limiting on login attempts
+- Consider passwordless options (magic links, OAuth)
+
+## Route Protection
+
+### Guard Types
+
+| Guard | Purpose |
+|-------|---------|
+| Auth Guard | Requires authenticated user |
+| Role Guard | Requires specific role(s) |
+| Guest Guard | Only for unauthenticated users |
+| Permission Guard | Requires specific permission(s) |
+
+### Protection Flow
+
+\\\
+Request → Check Auth State → 
+  ├─ Authenticated → Check Role/Permission →
+  │   ├─ Authorized → Render Route
+  │   └─ Unauthorized → Redirect to /unauthorized
+  └─ Not Authenticated → Redirect to /login (save intended URL)
+\\\
+
+## Session Management
+
+### Session States
+
+\\\
+SessionState {
+  status: 'idle' | 'loading' | 'authenticated' | 'unauthenticated'
+  user: User | null
+  permissions: string[]
+}
+\\\
+
+### Auto-Refresh Pattern
+
+1. Store token expiration time
+2. Set timer to refresh before expiration (e.g., 1 minute before)
+3. Silently refresh in background
+4. On failure, prompt re-authentication
+
+## API Integration
+
+### Request Interceptor
+
+Every authenticated request should:
+1. Attach Authorization header
+2. Handle 401 responses (trigger refresh)
+3. Queue failed requests during refresh
+4. Retry queued requests with new token
+
+### Response Handling
+
+| Status | Action |
+|--------|--------|
+| 200 | Success |
+| 401 | Refresh token or redirect to login |
+| 403 | Show "access denied" message |
+
+## OAuth/SSO Integration
+
+### Common Providers
+- Google
+- GitHub  
+- Microsoft/Azure AD
+- Auth0/Okta
+
+### OAuth Flow
+\\\
+1. Redirect to provider
+2. User authenticates with provider
+3. Provider redirects back with code
+4. Exchange code for tokens
+5. Create local session
+\\\
+
+## Security Checklist
+
+- [ ] HTTPS only (no mixed content)
+- [ ] Secure token storage
+- [ ] CSRF protection (for cookie auth)
+- [ ] Rate limiting on auth endpoints
+- [ ] Account lockout after failed attempts
+- [ ] Secure password reset flow
+- [ ] Session invalidation on logout
+- [ ] Audit logging for auth events
+
+## Anti-Patterns
+
+| ❌ Avoid | ✅ Prefer |
+|----------|----------|
+| Storing tokens in URL | Tokens in headers/cookies |
+| Long-lived access tokens | Short access + refresh pattern |
+| Client-side role checks only | Server validates on every request |
+| Plain localStorage for sensitive apps | httpOnly cookies |
+| Rolling your own crypto | Established libraries/services |

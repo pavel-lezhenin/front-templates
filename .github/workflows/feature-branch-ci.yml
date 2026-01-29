@@ -163,21 +163,22 @@ jobs:
           else
             COMMIT_MSG=$(git log -1 --pretty=format:"%s")
             
-            gh pr create \
-              --title "$COMMIT_MSG" \
-              --body "## 🤖 Auto-generated PR
+            PR_BODY="## 🤖 Auto-generated PR
 
-**Validation Status:**
-- ✅ Root checks passed
-- ✅ Security scan passed
-- ✅ Submodule CI passed (if applicable)
+          **Validation Status:**
+          - ✅ Root checks passed
+          - ✅ Security scan passed
+          - ✅ Submodule CI passed (if applicable)
 
----
-*Generated from commit: ${{ github.sha }}*" \
-              --head "$BRANCH_NAME" \
-              --base "main"
+          ---
+          *Generated from commit: ${{ github.sha }}*"
             
-            echo "🎉 Created Pull Request"
+            if gh pr create --title "$COMMIT_MSG" --body "$PR_BODY" --head "$BRANCH_NAME" --base "main"; then
+              echo "🎉 Created Pull Request"
+            else
+              echo "⚠️ Could not auto-create PR. Create manually:"
+              echo "https://github.com/${{ github.repository }}/pull/new/$BRANCH_NAME"
+            fi
           fi
         env:
           GH_TOKEN: ${{ secrets.GH_PAT || github.token }}

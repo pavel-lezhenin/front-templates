@@ -1,280 +1,166 @@
 # Performance Patterns
 
+> General performance concepts and metrics. For framework-specific implementations see:
+> - [React Performance](../framework/react/patterns/PERFORMANCE.md) - memo, useMemo, Suspense
+> - [Angular Performance](../framework/angular/patterns/PERFORMANCE.md) - OnPush, Signals, defer
+
 ## Core Web Vitals
 
-| Metric | Target  | Measures                  |
-| ------ | ------- | ------------------------- |
-| LCP    | < 2.5s  | Largest content paint     |
-| INP    | < 200ms | Interaction to Next Paint |
-| CLS    | < 0.1   | Cumulative layout shift   |
+| Metric | Target | Measures |
+|--------|--------|----------|
+| LCP | < 2.5s | Largest Contentful Paint - loading |
+| INP | < 200ms | Interaction to Next Paint - responsiveness |
+| CLS | < 0.1 | Cumulative Layout Shift - visual stability |
 
 ## Bundle Optimization
 
 ### Code Splitting
 
-```typescript
-// Route-based (automatic chunks)
-const ProductsPage = lazy(() => import('@/pages/products'));
-
-// Component-based
-const HeavyChart = lazy(() => import('./HeavyChart').then((m) => ({ default: m.HeavyChart })));
-
-// Named chunks for debugging
-const AdminPanel = lazy(() => import(/* webpackChunkName: "admin" */ '@/pages/admin'));
-```
+Split your bundle by:
+1. **Routes** - Each page in separate chunk
+2. **Components** - Heavy components loaded on demand
+3. **Vendors** - Third-party libraries in separate chunks
 
 ### Tree Shaking
 
-```typescript
+\\\	ypescript
 // ❌ BAD: Imports entire library
 import _ from 'lodash';
-_.debounce(fn, 300);
 
 // ✅ GOOD: Named import
 import { debounce } from 'lodash-es';
-debounce(fn, 300);
 
 // ✅ BEST: Specific import
 import debounce from 'lodash-es/debounce';
-debounce(fn, 300);
-```
+\\\
 
 ### Bundle Analysis
 
-```bash
-# Vite
-npx vite-bundle-visualizer
+Monitor bundle size in CI:
+- Set budget limits (e.g., main < 200KB)
+- Alert on significant increases
+- Visualize with bundle analyzers
 
-# Webpack
-npx webpack-bundle-analyzer dist/stats.json
-```
-
-## React Performance
+## Rendering Optimization
 
 ### Avoid Unnecessary Re-renders
 
-```tsx
-// ❌ BAD: New object every render
-<Component style={{ color: 'red' }} />
+| Problem | Solution |
+|---------|----------|
+| New object reference each render | Memoize objects |
+| New function reference each render | Memoize callbacks |
+| Expensive computation | Cache results |
+| Large lists | Virtualization |
 
-// ✅ GOOD: Stable reference
-const style = useMemo(() => ({ color: 'red' }), []);
-<Component style={style} />
+### Virtualization
 
-// ❌ BAD: Inline function
-<List items={items.filter(i => i.active)} />
+Use virtual scrolling for lists > 100 items:
+- Only render visible items
+- Recycle DOM nodes
+- Maintain scroll position
 
-// ✅ GOOD: Memoized
-const activeItems = useMemo(() => items.filter(i => i.active), [items]);
-<List items={activeItems} />
-```
+## Data Fetching
 
-### memo() Correctly
+### Caching Strategy
 
-```tsx
-// Only memo when:
-// 1. Component renders often with same props
-// 2. Component is expensive to render
-// 3. Parent renders often
+| Data Type | Cache Duration | Invalidation |
+|-----------|---------------|--------------|
+| User profile | Until logout | On profile update |
+| Product list | 5 minutes | On mutation |
+| Search results | 1 minute | On new search |
+| Static content | 1 hour+ | Rarely |
 
-// ✅ GOOD: Expensive list item
-const ProductCard = memo(function ProductCard({ product }: Props) {
-  return <ExpensiveRender product={product} />;
-});
+### Prefetching
 
-// ❌ UNNECESSARY: Simple component
-const Button = memo(function Button({ onClick, children }) {
-  return <button onClick={onClick}>{children}</button>;
-});
-```
-
-### useCallback/useMemo Guidelines
-
-```tsx
-// useCallback for:
-// 1. Event handlers passed to memoized children
-// 2. Dependencies of useEffect
-// 3. Context values
-
-const handleClick = useCallback(() => {
-  doSomething(id);
-}, [id]);
-
-// useMemo for:
-// 1. Expensive calculations
-// 2. Referential equality in deps
-// 3. Context values
-
-const sortedItems = useMemo(() => [...items].sort((a, b) => a.price - b.price), [items]);
-```
-
-## List Virtualization
-
-```tsx
-// Large lists (100+ items)
-import { useVirtualizer } from '@tanstack/react-virtual';
-
-function VirtualList({ items }: { items: Item[] }) {
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  const virtualizer = useVirtualizer({
-    count: items.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 50,
-  });
-
-  return (
-    <div ref={parentRef} style={{ height: '400px', overflow: 'auto' }}>
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          position: 'relative',
-        }}
-      >
-        {virtualizer.getVirtualItems().map((virtualItem) => (
-          <div
-            key={virtualItem.key}
-            style={{
-              position: 'absolute',
-              top: 0,
-              transform: `translateY(${virtualItem.start}px)`,
-              height: `${virtualItem.size}px`,
-            }}
-          >
-            {items[virtualItem.index].name}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-```
+Prefetch data user is likely to need:
+- On hover (link/button)
+- On route transition start
+- Based on user behavior patterns
 
 ## Image Optimization
 
-```tsx
-// Lazy loading
-<img src={src} alt={alt} loading="lazy" />
+### Checklist
 
-// Responsive images
-<img
-  src={src}
-  srcSet={`${src}?w=400 400w, ${src}?w=800 800w`}
-  sizes="(max-width: 600px) 400px, 800px"
-  alt={alt}
-/>
+- [ ] Use modern formats (WebP, AVIF)
+- [ ] Serve responsive sizes (srcset)
+- [ ] Lazy load below-fold images
+- [ ] Set explicit dimensions (prevent CLS)
+- [ ] Use CDN with caching
+- [ ] Compress appropriately
 
-// Next.js Image (automatic optimization)
-import Image from 'next/image';
-<Image src={src} alt={alt} width={800} height={600} />
+### Loading Strategy
 
-// Aspect ratio to prevent CLS
-<div style={{ aspectRatio: '16/9' }}>
-  <img src={src} alt={alt} loading="lazy" />
-</div>
-```
+| Position | Strategy |
+|----------|----------|
+| Above fold | Eager load, priority hint |
+| Below fold | Lazy load |
+| Background | Low priority |
 
-## Font Optimization
+## JavaScript Performance
 
-```css
-/* Preload critical fonts */
-<link rel="preload" href="/fonts/Inter.woff2" as="font" type="font/woff2" crossorigin>
+### Debouncing & Throttling
 
-/* Font display swap */
-@font-face {
-  font-family: 'Inter';
-  src: url('/fonts/Inter.woff2') format('woff2');
-  font-display: swap;
-}
+| Technique | Use Case | Example |
+|-----------|----------|---------|
+| Debounce | Wait until user stops | Search input |
+| Throttle | Limit frequency | Scroll handler |
 
-/* Subset fonts */
-/* Use tools like glyphhanger to subset */
-```
+### Web Workers
 
-## Prefetching
+Offload heavy computation:
+- Data processing
+- Image manipulation
+- Complex calculations
 
-```tsx
-// Link prefetch
-<Link to="/products" prefetch="intent">
-  Products
-</Link>;
+## Measurement
 
-// Manual prefetch
-function NavLink({ to }: { to: string }) {
-  const prefetch = () => {
-    // Prefetch route component
-    if (to === '/products') {
-      import('@/pages/products');
-    }
-  };
+### Performance Budgets
 
-  return (
-    <Link to={to} onMouseEnter={prefetch}>
-      {children}
-    </Link>
-  );
-}
+| Resource | Budget |
+|----------|--------|
+| HTML | < 50KB |
+| CSS | < 100KB |
+| JS (initial) | < 200KB |
+| Images (above fold) | < 500KB |
+| Total page | < 1MB |
 
-// TanStack Query prefetch
-function ProductList() {
-  const queryClient = useQueryClient();
+### Monitoring
 
-  const prefetchProduct = (id: string) => {
-    queryClient.prefetchQuery({
-      queryKey: ['product', id],
-      queryFn: () => getProduct(id),
-    });
-  };
+Track in production:
+- Core Web Vitals
+- Time to Interactive
+- First Contentful Paint
+- Bundle size over time
 
-  return <div onMouseEnter={() => prefetchProduct(product.id)}>{product.name}</div>;
-}
-```
+## Anti-Patterns
 
-## Angular Performance
+| ❌ Avoid | ✅ Prefer |
+|----------|----------|
+| Premature optimization | Measure first |
+| Memoizing everything | Memoize when needed |
+| Inline styles/objects | Stable references |
+| Render-blocking resources | Async/defer loading |
+| Unoptimized images | Compressed, lazy-loaded |
+| Monolithic bundles | Code splitting |
 
-```typescript
-// OnPush change detection
-@Component({
-  changeDetection: ChangeDetectionStrategy.OnPush,
-})
-export class ProductListComponent {}
+## Performance Checklist
 
-// trackBy for ngFor
-@for (product of products(); track product.id) {
-  <app-product-card [product]="product" />
-}
+### Initial Load
+- [ ] Code splitting by routes
+- [ ] Critical CSS inlined
+- [ ] Non-critical JS deferred
+- [ ] Images optimized and lazy-loaded
+- [ ] Fonts preloaded
 
-// Lazy loading modules
-{
-  path: 'admin',
-  loadChildren: () => import('./admin/admin.routes'),
-}
-```
+### Runtime
+- [ ] No unnecessary re-renders
+- [ ] Lists virtualized (if large)
+- [ ] Heavy computation memoized
+- [ ] Event handlers debounced/throttled
+- [ ] Memory leaks prevented
 
-## Monitoring
-
-```typescript
-// Web Vitals
-import { onLCP, onINP, onCLS } from 'web-vitals';
-
-onLCP(console.log);
-onINP(console.log);
-onCLS(console.log);
-
-// Performance marks
-performance.mark('component-start');
-// ... render
-performance.mark('component-end');
-performance.measure('component-render', 'component-start', 'component-end');
-```
-
-## Checklist
-
-- [ ] Bundle < 200KB initial JS
-- [ ] Code splitting per route
-- [ ] Images lazy loaded
-- [ ] Fonts optimized
-- [ ] Lists virtualized (100+ items)
-- [ ] No layout shifts
-- [ ] Prefetching implemented
-- [ ] Web Vitals monitored
+### Network
+- [ ] API responses cached
+- [ ] Data prefetched when appropriate
+- [ ] Offline support (if needed)
+- [ ] CDN for static assets

@@ -1,189 +1,195 @@
 # API Mocking Patterns
 
-## Overview
+> General API mocking concepts and strategies. For framework-specific implementations see:
+> - [React API Mocking](../framework/react/patterns/API_MOCKING.md) - MSW + TanStack Query
+> - [Angular API Mocking](../framework/angular/patterns/API_MOCKING.md) - MSW + HttpClient
 
-Mock Service Worker (MSW) for request interception in development and testing.
+## Why Mock APIs
 
-## Setup
+| Scenario | Benefit |
+|----------|---------|
+| Development | Work without backend |
+| Testing | Predictable, fast tests |
+| Demos | Reliable showcases |
+| Edge cases | Simulate errors, timeouts |
+| Offline | Continue development |
 
-```bash
-pnpm add -D msw
-npx msw init public --save
-```
+## Mock Service Worker (MSW)
 
-## Handler Definition
+### Why MSW
 
-```typescript
-// src/shared/api/mocks/handlers.ts
-import { http, HttpResponse, delay } from 'msw';
+- Intercepts at network level
+- Works in browser and Node.js
+- Same handlers for dev and test
+- No application code changes needed
 
-export const handlers = [
-  // GET request
-  http.get('/api/users', async () => {
-    await delay(150); // Simulate network
-    return HttpResponse.json([
-      { id: '1', name: 'John Doe', email: 'john@example.com' },
-      { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
-    ]);
-  }),
+### Architecture
 
-  // GET with params
-  http.get('/api/users/:id', async ({ params }) => {
-    const { id } = params;
-    return HttpResponse.json({
-      id,
-      name: 'John Doe',
-      email: 'john@example.com',
-    });
-  }),
+\\\
+Application → HTTP Request → MSW Intercepts → Mock Handler → Response
+                                    ↓
+                              (unhandled)
+                                    ↓
+                             Real Network
+\\\
 
-  // POST request
-  http.post('/api/users', async ({ request }) => {
-    const body = await request.json();
-    return HttpResponse.json({ id: crypto.randomUUID(), ...body }, { status: 201 });
-  }),
+## Handler Patterns
 
-  // Error response
-  http.delete('/api/users/:id', async ({ params }) => {
-    if (params.id === 'protected') {
-      return HttpResponse.json(
-        { code: 'FORBIDDEN', message: 'Cannot delete protected user' },
-        { status: 403 }
-      );
-    }
-    return new HttpResponse(null, { status: 204 });
-  }),
-];
-```
+### RESTful Endpoints
 
-## Browser Setup (Development)
+| Endpoint | Method | Handler |
+|----------|--------|---------|
+| \/api/items\ | GET | List items |
+| \/api/items/:id\ | GET | Get single item |
+| \/api/items\ | POST | Create item |
+| \/api/items/:id\ | PATCH/PUT | Update item |
+| \/api/items/:id\ | DELETE | Delete item |
 
-```typescript
-// src/shared/api/mocks/browser.ts
-import { setupWorker } from 'msw/browser';
-import { handlers } from './handlers';
+### Response Codes
 
-export const worker = setupWorker(...handlers);
+| Status | Use Case |
+|--------|----------|
+| 200 | Success (GET, PUT, PATCH) |
+| 201 | Created (POST) |
+| 204 | No Content (DELETE) |
+| 400 | Validation error |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not found |
+| 500 | Server error |
 
-// src/main.tsx
-async function enableMocking() {
-  if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCKS === 'true') {
-    const { worker } = await import('@/shared/api/mocks/browser');
-    return worker.start({
-      onUnhandledRequest: 'bypass',
-    });
-  }
-}
+## Data Management
 
-enableMocking().then(() => {
-  createRoot(document.getElementById('root')!).render(<App />);
-});
-```
+### Approaches
 
-## Node Setup (Testing)
+| Approach | Use Case | Persistence |
+|----------|----------|-------------|
+| Static JSON | Simple, read-only | None |
+| Factory functions | Dynamic generation | None |
+| In-memory database | CRUD operations | Session |
+| IndexedDB | Long-term persistence | Browser |
 
-```typescript
-// src/shared/api/mocks/server.ts
-import { setupServer } from 'msw/node';
-import { handlers } from './handlers';
+### @mswjs/data
 
-export const server = setupServer(...handlers);
+Benefits:
+- Relational data modeling
+- Query filtering
+- Automatic CRUD
+- Seed data generation
 
-// tests/setup.ts
-import { server } from '@/shared/api/mocks/server';
+## Testing Strategies
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-```
+### Handler Scoping
 
-## Test-Specific Overrides
+| Scope | Purpose |
+|-------|---------|
+| Global | Default happy path |
+| Test file | File-specific scenarios |
+| Single test | Error/edge cases |
 
-```typescript
-// Component test
-import { server } from '@/shared/api/mocks/server';
-import { http, HttpResponse } from 'msw';
+### Common Test Scenarios
 
-it('shows error state when API fails', async () => {
-  // Override for this test only
-  server.use(
-    http.get('/api/users', () => {
-      return HttpResponse.json(
-        { message: 'Server error' },
-        { status: 500 }
-      );
-    })
-  );
-
-  render(<UserList />);
-
-  await waitFor(() => {
-    expect(screen.getByText(/error/i)).toBeInTheDocument();
-  });
-});
-```
-
-## Scenarios (Fixtures)
-
-```typescript
-// src/shared/api/mocks/scenarios.ts
-import { http, HttpResponse } from 'msw';
-
-export const scenarios = {
-  emptyState: [
-    http.get('/api/users', () => HttpResponse.json([])),
-    http.get('/api/orders', () => HttpResponse.json([])),
-  ],
-
-  networkError: [http.get('/api/*', () => HttpResponse.error())],
-
-  slowNetwork: [
-    http.get('/api/*', async () => {
-      await delay(3000);
-      return HttpResponse.json({});
-    }),
-  ],
-};
-
-// Usage in Storybook
-import { scenarios } from '@/shared/api/mocks/scenarios';
-
-export const EmptyState: Story = {
-  parameters: {
-    msw: {
-      handlers: scenarios.emptyState,
-    },
-  },
-};
-```
-
-## Angular MSW Setup
-
-```typescript
-// src/app/core/mocks/setup-msw.ts
-import { setupWorker } from 'msw/browser';
-import { handlers } from './handlers';
-
-export function setupMSW(): Promise<void> {
-  if (process.env['NODE_ENV'] === 'development') {
-    const worker = setupWorker(...handlers);
-    return worker.start({ onUnhandledRequest: 'bypass' });
-  }
-  return Promise.resolve();
-}
-
-// main.ts
-import { setupMSW } from '@/core/mocks/setup-msw';
-
-setupMSW().then(() => {
-  bootstrapApplication(AppComponent);
-});
-```
+1. **Success** - Default handlers
+2. **Empty state** - Return empty array
+3. **Error** - Return error status
+4. **Loading** - Add delay
+5. **Validation** - Return field errors
 
 ## Best Practices
 
-1. **Keep handlers organized** - Group by feature/domain
-2. **Use realistic data** - Helps catch edge cases
-3. **Test error states** - Override handlers in tests
-4. **Document scenarios** - Create named fixture sets
-5. **Bypass external URLs** - Only mock your own API
+### Do
+
+- ✅ Match real API contract exactly
+- ✅ Use realistic delays (100-300ms)
+- ✅ Generate realistic fake data
+- ✅ Test error scenarios
+- ✅ Reset state between tests
+
+### Don't
+
+- ❌ Hardcode test-specific logic in handlers
+- ❌ Couple mocks to implementation details
+- ❌ Skip error scenario testing
+- ❌ Use production data in mocks
+
+## Development Workflow
+
+### Environment Setup
+
+\\\
+Development:
+  - MSW browser worker
+  - Seeded mock database
+  - Network dev tools work normally
+
+Testing:
+  - MSW Node server
+  - Fresh database per test
+  - Override handlers per test
+\\\
+
+### Toggling Mocks
+
+Options for enabling/disabling:
+- Environment variable
+- URL parameter
+- Browser dev tools command
+- Build-time flag
+
+## Error Simulation
+
+### Network Errors
+
+- Connection refused
+- Timeout
+- Network offline
+
+### API Errors
+
+\\\json
+{
+  "code": "VALIDATION_ERROR",
+  "message": "Invalid input",
+  "fields": {
+    "email": ["Invalid email format"]
+  }
+}
+\\\
+
+### Delay Patterns
+
+| Pattern | Use |
+|---------|-----|
+| Fixed delay | Consistent testing |
+| Random delay | Realistic simulation |
+| Zero delay | Fast tests |
+| Long delay | Loading state testing |
+
+## Seeding Data
+
+### Strategies
+
+| Strategy | Best For |
+|----------|----------|
+| Minimal seed | Unit tests |
+| Representative seed | Integration tests |
+| Large seed | Performance testing |
+| Edge case seed | Boundary testing |
+
+### Data Generation
+
+Use libraries like \@faker-js/faker\ for:
+- Realistic names, emails, addresses
+- Dates, numbers, UUIDs
+- Images, paragraphs
+- Consistent seeds for reproducibility
+
+## Anti-Patterns
+
+| ❌ Avoid | ✅ Prefer |
+|----------|----------|
+| Mocking at component level | Network-level mocking |
+| Different mocks for dev/test | Shared handlers |
+| Hardcoded IDs in tests | Dynamic/generated data |
+| Skipping cleanup | Reset between tests |
+| Ignoring real API changes | Keep mocks in sync |
