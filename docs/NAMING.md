@@ -11,7 +11,7 @@
 | Segment    | Description                           | Examples                                               |
 | ---------- | ------------------------------------- | ------------------------------------------------------ |
 | framework  | Base framework                        | `react`, `angular`                                     |
-| pattern    | Architecture pattern                  | `fsd`, `modular`, `atomic`, `standalone`, `ngrx`, `nx` |
+| pattern    | Architecture pattern                  | `fsd`, `modular`, `atomic`, `standalone`, `layered`, `ngrx`, `nx` |
 | technology | Technology stack (instead of pattern) | `web3`, `mf`, `next`, `firebase`                       |
 | project    | Project name/type                     | `starter`, `ecommerce`, `admin`, `shop`                |
 | role       | MF role (optional)                    | `shell`, `remote`, `shared`, `e2e`                     |
@@ -20,15 +20,17 @@
 
 ### Regular Projects
 
-| Name                         | Description                   |
-| ---------------------------- | ----------------------------- |
-| `react-fsd-starter`          | React + FSD template          |
-| `react-fsd-ecommerce`        | React + FSD implementation    |
-| `react-modular-starter`      | React + Modular template      |
-| `react-atomic-starter`       | React + Atomic Design         |
-| `angular-standalone-starter` | Angular Standalone Components |
-| `angular-ngrx-starter`       | Angular + NgRx                |
-| `angular-nx-enterprise`      | Angular + Nx workspace        |
+| Name                         | Description                        |
+| ---------------------------- | ---------------------------------- |
+| `react-fsd-starter`          | React + FSD template               |
+| `react-fsd-ecommerce`        | React + FSD implementation         |
+| `react-modular-starter`      | React + Modular template           |
+| `react-atomic-starter`       | React + Atomic Design              |
+| `angular-standalone-starter` | Angular Standalone Components      |
+| `angular-modular-starter`    | Angular + NgModules (classic)      |
+| `angular-layered-starter`    | Angular Enterprise Layered (300+)  |
+| `angular-ngrx-starter`       | Angular + NgRx                     |
+| `angular-nx-enterprise`      | Angular + Nx workspace             |
 
 ### With Technology Suffix
 
