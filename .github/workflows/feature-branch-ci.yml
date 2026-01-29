@@ -163,17 +163,22 @@ jobs:
           else
             COMMIT_MSG=$(git log -1 --pretty=format:"%s")
             
+            PR_BODY=$(cat <<EOF
+          ## 🤖 Auto-generated PR
+
+          **Validation Status:**
+          - ✅ Root checks passed
+          - ✅ Security scan passed
+          - ✅ Submodule CI passed (if applicable)
+
+          ---
+          *Generated from commit: ${{ github.sha }}*
+          EOF
+            )
+            
             gh pr create \
               --title "$COMMIT_MSG" \
-              --body "## 🤖 Auto-generated PR
-
-**Validation Status:**
-- ✅ Root checks passed
-- ✅ Security scan passed
-- ✅ Submodule CI passed (if applicable)
-
----
-*Generated from commit: ${{ github.sha }}*" \
+              --body "$PR_BODY" \
               --head "$BRANCH_NAME" \
               --base "main"
             
