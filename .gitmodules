@@ -1,6 +1,3 @@
 [submodule "packages/react-fsd-starter"]
 	path = packages/react-fsd-starter
 	url = https://github.com/pavel-lezhenin/react-fsd-starter.git
-[submodule "packages/angular-standalone_spartan_order-starter"]
-	path = packages/angular-standalone_spartan_order-starter
-	url = https://github.com/pavel-lezhenin/angular-standalone_spartan_order-starter.git
