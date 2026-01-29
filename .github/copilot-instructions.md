@@ -29,6 +29,31 @@ packages/{framework}-{pattern}-{project}[-{role}]
 - **Technology**: web3, mf, next, firebase
 - **Role**: shell, remote, shared, e2e (MF only)
 
+## Package Isolation (CRITICAL)
+
+- **STRICT: NEVER run commands from monorepo root targeting packages**
+- **STRICT: ALWAYS work inside individual package directories**
+- **STRICT: NO cross-package commands from root**
+
+### ✅ Correct Workflow:
+```bash
+cd packages/specific-package
+pnpm install
+pnpm dev
+pnpm build
+pnpm test
+```
+
+### ❌ FORBIDDEN (breaks isolation):
+```bash
+# From root - NEVER DO THIS
+pnpm --filter package-name dev
+pnpm run dev:package-name
+# Any command targeting packages from root
+```
+
+**Each package MUST be completely isolated and self-contained.**
+
 ## Git Submodules
 
 Each package is independent git submodule.
@@ -212,3 +237,8 @@ export async function getUser(id: string): Promise<User | null>
 - ❌ Skip security checks in CI
 - ❌ Ignore test coverage (<80%)
 - ❌ Put business logic in Pages
+- ❌ **NEVER EVER run package commands from monorepo root**
+- ❌ **NEVER create workspace-wide dev/build commands**
+- ❌ **NEVER use --filter commands that break isolation**
+- ❌ **NEVER create new terminals unnecessarily - reuse existing!**
+- ❌ **NEVER forget to check terminal_last_command() before new terminal**
