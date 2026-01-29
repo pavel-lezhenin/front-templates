@@ -1,47 +1,395 @@
 # Angular Framework Guide
 
-## Project Structure (Modular)
+## Project Structure
+
+Angular projects in this monorepo follow different architectural patterns. Choose structure according to package naming convention.
+
+### Standalone Pattern (Angular 17+)
+
+Modern approach without NgModules. Recommended for new projects.
+
+**Packages:** `angular-standalone-*`
 
 ```
 src/
 ├── app/
 │   ├── app.component.ts
-│   ├── app.config.ts
-│   ├── app.routes.ts
-│   └── core/                 # Singleton services, guards, interceptors
+│   ├── app.config.ts          # ApplicationConfig with providers
+│   ├── app.routes.ts          # Lazy-loaded routes
+│   └── core/                  # Singleton services, guards, interceptors
 │       ├── auth/
 │       ├── interceptors/
 │       └── guards/
-├── pages/                    # Route components (composition only)
+├── pages/                     # Route components (composition only)
 │   ├── home/
+│   │   └── home.component.ts
 │   ├── products/
 │   └── dashboard/
-├── features/                 # Feature-specific components and logic
+├── features/                  # Feature-specific standalone components
 │   ├── cart/
-│   ├── product-filter/
+│   │   ├── cart.component.ts
+│   │   └── cart.service.ts
 │   └── checkout/
-├── entities/                 # Domain models and services
+├── entities/                  # Domain models and data-access
 │   ├── user/
+│   │   ├── user.model.ts
+│   │   └── user.service.ts
 │   └── product/
-└── shared/                   # Reusable components, directives, pipes
+└── shared/                    # Reusable standalone components, directives, pipes
     ├── ui/
     ├── directives/
     ├── pipes/
     └── utils/
 ```
 
+### Modular Pattern (NgModule-based)
+
+Classic approach with NgModules. Used for legacy projects or specific requirements.
+
+**Packages:** `angular-modular-*`
+
+```
+src/
+├── app/
+│   ├── app.module.ts          # Root NgModule
+│   ├── app-routing.module.ts
+│   ├── app.component.ts
+│   └── core/                  # CoreModule (imported once in AppModule)
+│       ├── core.module.ts
+│       ├── auth/
+│       ├── interceptors/
+│       └── guards/
+├── features/                  # Feature modules (lazy-loaded)
+│   ├── products/
+│   │   ├── products.module.ts
+│   │   ├── products-routing.module.ts
+│   │   ├── pages/
+│   │   ├── components/
+│   │   └── services/
+│   └── dashboard/
+│       └── dashboard.module.ts
+└── shared/                    # SharedModule (exported reusables)
+    ├── shared.module.ts
+    ├── components/
+    ├── directives/
+    ├── pipes/
+    └── utils/
+```
+
+### Enterprise Layered Pattern
+
+For large-scale monolithic applications (300+ components) with multiple user areas (admin, user cabinet, dashboards) but still a single deployable unit.
+
+**Packages:** `angular-layered-*`
+
+```
+src/
+├── app/
+│   ├── app.component.ts
+│   ├── app.config.ts
+│   └── app.routes.ts          # Top-level routing to areas
+│
+├── @core/                     # LAYER: Singleton services (imported once)
+│   ├── auth/
+│   │   ├── auth.service.ts
+│   │   ├── auth.guard.ts
+│   │   └── auth.interceptor.ts
+│   ├── api/
+│   │   ├── api.service.ts
+│   │   └── api.interceptor.ts
+│   ├── config/
+│   │   └── app-config.service.ts
+│   ├── storage/
+│   │   └── local-storage.service.ts
+│   └── index.ts               # Public API
+│
+├── @shared/                   # LAYER: Reusable (no business logic)
+│   ├── ui/                    # UI Kit
+│   │   ├── button/
+│   │   ├── input/
+│   │   ├── modal/
+│   │   ├── table/
+│   │   ├── card/
+│   │   └── index.ts
+│   ├── directives/
+│   │   ├── click-outside.directive.ts
+│   │   └── index.ts
+│   ├── pipes/
+│   │   ├── date-format.pipe.ts
+│   │   └── index.ts
+│   ├── validators/
+│   │   └── custom-validators.ts
+│   └── helpers/
+│       ├── array.utils.ts
+│       ├── date.utils.ts
+│       └── index.ts
+│
+├── @domain/                   # LAYER: Business domain models & services
+│   ├── user/
+│   │   ├── user.model.ts
+│   │   ├── user.api.ts
+│   │   └── index.ts
+│   ├── product/
+│   │   ├── product.model.ts
+│   │   ├── product.api.ts
+│   │   └── index.ts
+│   ├── order/
+│   └── organization/
+│
+├── areas/                     # USER AREAS (lazy-loaded)
+│   │
+│   ├── admin/                 # Admin panel
+│   │   ├── admin.routes.ts
+│   │   ├── admin-layout.component.ts
+│   │   ├── dashboard/
+│   │   │   └── admin-dashboard.component.ts
+│   │   ├── users-management/
+│   │   │   ├── users-list/
+│   │   │   ├── user-edit/
+│   │   │   └── users-management.routes.ts
+│   │   ├── settings/
+│   │   └── reports/
+│   │
+│   ├── cabinet/               # User personal cabinet
+│   │   ├── cabinet.routes.ts
+│   │   ├── cabinet-layout.component.ts
+│   │   ├── profile/
+│   │   ├── orders/
+│   │   ├── notifications/
+│   │   └── settings/
+│   │
+│   ├── manager/               # Manager dashboard
+│   │   ├── manager.routes.ts
+│   │   ├── manager-layout.component.ts
+│   │   ├── analytics/
+│   │   ├── team/
+│   │   └── tasks/
+│   │
+│   └── public/                # Public pages (landing, auth)
+│       ├── public.routes.ts
+│       ├── landing/
+│       ├── login/
+│       ├── register/
+│       └── password-reset/
+│
+└── @widgets/                  # Complex reusable blocks (with business logic)
+    ├── user-menu/
+    ├── notification-bell/
+    ├── search-panel/
+    ├── data-export/
+    └── charts/
+```
+
+#### Layer Rules
+
+| Layer     | Purpose                              | Can Import              |
+| --------- | ------------------------------------ | ----------------------- |
+| `@core`   | Singleton services, guards, interceptors | Only external libs   |
+| `@shared` | UI kit, pipes, directives, helpers   | Only external libs      |
+| `@domain` | Business models, API services        | `@shared`               |
+| `@widgets`| Complex reusable blocks              | `@core`, `@shared`, `@domain` |
+| `areas/*` | User areas with pages                | All layers              |
+
+#### Path Aliases (tsconfig.json)
+
+```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@core/*": ["src/@core/*"],
+      "@shared/*": ["src/@shared/*"],
+      "@domain/*": ["src/@domain/*"],
+      "@widgets/*": ["src/@widgets/*"],
+      "@areas/*": ["src/areas/*"]
+    }
+  }
+}
+```
+
+#### Area Routing Example
+
+```typescript
+// app.routes.ts
+export const routes: Routes = [
+  {
+    path: '',
+    loadChildren: () => import('./areas/public/public.routes').then(m => m.PUBLIC_ROUTES),
+  },
+  {
+    path: 'cabinet',
+    canActivate: [authGuard],
+    loadChildren: () => import('./areas/cabinet/cabinet.routes').then(m => m.CABINET_ROUTES),
+  },
+  {
+    path: 'admin',
+    canActivate: [authGuard, adminGuard],
+    loadChildren: () => import('./areas/admin/admin.routes').then(m => m.ADMIN_ROUTES),
+  },
+  {
+    path: 'manager',
+    canActivate: [authGuard, managerGuard],
+    loadChildren: () => import('./areas/manager/manager.routes').then(m => m.MANAGER_ROUTES),
+  },
+];
+
+// areas/admin/admin.routes.ts
+export const ADMIN_ROUTES: Routes = [
+  {
+    path: '',
+    component: AdminLayoutComponent,
+    children: [
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+      { 
+        path: 'dashboard',
+        loadComponent: () => import('./dashboard/admin-dashboard.component'),
+      },
+      {
+        path: 'users',
+        loadChildren: () => import('./users-management/users-management.routes'),
+      },
+    ],
+  },
+];
+```
+
+#### When to Use
+
+- ✅ 300+ components monolith
+- ✅ Multiple user roles (admin, user, manager, etc.)
+- ✅ Single deployment unit required
+- ✅ Shared domain logic across areas
+- ❌ Need independent deployments → use NX
+- ❌ Small app (<50 components) → use Standalone
+
+### NX Monorepo Pattern
+
+For large-scale enterprise applications with shared libraries and multiple apps.
+
+**Packages:** `angular-nx-*`
+
+```
+├── apps/
+│   ├── shell/                     # Main application
+│   │   ├── src/
+│   │   │   ├── app/
+│   │   │   │   ├── app.component.ts
+│   │   │   │   ├── app.config.ts
+│   │   │   │   └── app.routes.ts
+│   │   │   └── main.ts
+│   │   └── project.json           # NX project configuration
+│   └── admin/                     # Admin application
+│       ├── src/
+│       └── project.json
+├── libs/
+│   ├── shared/
+│   │   ├── ui/                    # UI component library
+│   │   │   ├── src/
+│   │   │   │   ├── lib/
+│   │   │   │   │   ├── button/
+│   │   │   │   │   └── card/
+│   │   │   │   └── index.ts       # Public API
+│   │   │   └── project.json
+│   │   ├── utils/                 # Utility functions
+│   │   └── data-access/           # API services, state
+│   ├── features/
+│   │   ├── products/              # Feature library
+│   │   │   ├── src/
+│   │   │   │   ├── lib/
+│   │   │   │   │   ├── product-list/
+│   │   │   │   │   └── product-detail/
+│   │   │   │   └── index.ts
+│   │   │   └── project.json
+│   │   └── auth/
+│   └── entities/
+│       └── user/
+├── nx.json                        # NX workspace configuration
+└── tsconfig.base.json             # Shared TS config with path aliases
+```
+
+#### NX Library Types
+
+| Type        | Purpose                          | Example                    |
+| ----------- | -------------------------------- | -------------------------- |
+| feature     | Smart components, business logic | `libs/features/products`   |
+| ui          | Presentational components        | `libs/shared/ui`           |
+| data-access | State, API services              | `libs/shared/data-access`  |
+| util        | Pure functions, helpers          | `libs/shared/utils`        |
+| entity      | Domain models, interfaces        | `libs/entities/user`       |
+
+#### NX Path Aliases
+
+```json
+// tsconfig.base.json
+{
+  "compilerOptions": {
+    "paths": {
+      "@myorg/shared/ui": ["libs/shared/ui/src/index.ts"],
+      "@myorg/shared/utils": ["libs/shared/utils/src/index.ts"],
+      "@myorg/features/products": ["libs/features/products/src/index.ts"],
+      "@myorg/entities/user": ["libs/entities/user/src/index.ts"]
+    }
+  }
+}
+```
+
+#### NX Common Commands
+
+```bash
+# Generate new library
+npx nx g @nx/angular:library shared/ui --standalone --buildable
+
+# Generate component in library
+npx nx g @nx/angular:component button --project=shared-ui --standalone
+
+# Run affected tests (only changed)
+npx nx affected:test
+
+# Build affected apps
+npx nx affected:build
+
+# Visualize dependency graph
+npx nx graph
+
+# Run specific app
+npx nx serve shell
+npx nx serve admin
+```
+
+### Key Differences
+
+| Aspect          | Standalone              | Modular (NgModule)       | Enterprise Layered       | NX Monorepo              |
+| --------------- | ----------------------- | ------------------------ | ------------------------ | ------------------------ |
+| Bootstrap       | `bootstrapApplication`  | `platformBrowserDynamic` | `bootstrapApplication`   | `bootstrapApplication`   |
+| Components      | `standalone: true`      | Declared in NgModule     | Standalone               | Standalone in libs       |
+| Organization    | Flat / features         | Feature modules          | Layers + areas           | Apps + libs              |
+| Dependencies    | `imports` in component  | Module imports           | Path aliases (@core/*)   | Path aliases (@myorg/*)  |
+| Lazy Loading    | `loadComponent()`       | `loadChildren()`         | Areas lazy-loaded        | `loadComponent()` + libs |
+| Tree-shaking    | ✅ Better               | ⚠️ Module-level          | ✅ Good                  | ✅ Library-level         |
+| Deployment      | Single bundle           | Single bundle            | Single bundle            | Multiple apps            |
+| Scale           | <100 components         | 50-200 components        | 200-1000+ components     | Unlimited                |
+| Best For        | Small-Medium apps       | Legacy migration         | Large monoliths          | Enterprise, multi-app    |
+
+### When to Use What
+
+| Pattern            | Components | User Areas | Deployment | Team Size |
+| ------------------ | ---------- | ---------- | ---------- | --------- |
+| **Standalone**     | <100       | 1-2        | Single     | 1-3       |
+| **Modular**        | 50-200     | 1-3        | Single     | 2-5       |
+| **Enterprise Layered** | 200-1000+ | Multiple (admin, cabinet, manager) | Single | 5-15 |
+| **NX Monorepo**    | Unlimited  | Unlimited  | Multiple   | 10+       |
+
 ## Stack Defaults
 
-| Concern | Library            |
-| ------- | ------------------ |
-| Build   | Angular CLI        |
-| Styling | SCSS               |
-| State   | Signals + Services |
-| Forms   | Reactive Forms     |
-| HTTP    | HttpClient         |
-| Testing | Jest               |
-| E2E     | Playwright         |
-| Mocking | MSW                |
+| Concern | Standalone / Modular / Layered | NX Monorepo            |
+| ------- | ------------------------------ | ---------------------- |
+| Build   | Angular CLI                    | NX CLI + Angular       |
+| Styling | SCSS                           | SCSS                   |
+| State   | Signals + Services             | Signals + data-access libs |
+| Forms   | Reactive Forms                 | Reactive Forms         |
+| HTTP    | HttpClient                     | HttpClient             |
+| Testing | Jest                           | Jest (affected)        |
+| E2E     | Playwright                     | Playwright             |
+| Mocking | MSW                            | MSW                    |
 
 ## Modern Angular Patterns
 
@@ -63,6 +411,40 @@ src/
 export class ProductCardComponent {
   product = input.required<Product>();
 }
+```
+
+### NX Library Component
+
+```typescript
+// libs/shared/ui/src/lib/button/button.component.ts
+@Component({
+  selector: 'myorg-button',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <button [class]="variant()" [disabled]="disabled()">
+      <ng-content />
+    </button>
+  `,
+  styleUrl: './button.component.scss',
+})
+export class ButtonComponent {
+  variant = input<'primary' | 'secondary'>('primary');
+  disabled = input(false);
+}
+
+// libs/shared/ui/src/index.ts (public API)
+export * from './lib/button/button.component';
+export * from './lib/card/card.component';
+
+// Usage in app
+import { ButtonComponent } from '@myorg/shared/ui';
+
+@Component({
+  imports: [ButtonComponent],
+  template: `<myorg-button variant="primary">Click me</myorg-button>`,
+})
+export class ProductPageComponent {}
 ```
 
 ### Signals
@@ -355,6 +737,56 @@ describe('ProductService', () => {
 });
 ```
 
+### NX Testing Commands
+
+```bash
+# Run all tests
+npx nx run-many --target=test --all
+
+# Run affected tests only (recommended for CI)
+npx nx affected:test
+
+# Test specific library
+npx nx test shared-ui
+
+# Test with coverage
+npx nx test shared-ui --coverage
+
+# Watch mode for development
+npx nx test shared-ui --watch
+```
+
+### NX Library Test Example
+
+```typescript
+// libs/shared/ui/src/lib/button/button.component.spec.ts
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ButtonComponent } from './button.component';
+
+describe('ButtonComponent', () => {
+  let fixture: ComponentFixture<ButtonComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [ButtonComponent],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ButtonComponent);
+  });
+
+  it('applies primary variant by default', () => {
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('button').className).toContain('primary');
+  });
+
+  it('applies secondary variant when specified', () => {
+    fixture.componentRef.setInput('variant', 'secondary');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('button').className).toContain('secondary');
+  });
+});
+```
+
 ## Change Detection
 
 ```typescript
@@ -370,11 +802,21 @@ export class ProductCardComponent {
 
 ## Common Mistakes
 
+### General
+
 1. **Not using OnPush** - Performance issues
-2. **Forgetting unsubscribe** - Memory leaks
-3. **Not using trackBy** - DOM thrashing
+2. **Forgetting unsubscribe** - Memory leaks (use `takeUntilDestroyed()`)
+3. **Not using track** - DOM thrashing in `@for` loops
 4. **Constructor over inject()** - Verbose code
 5. **NgModule for new projects** - Use standalone
+
+### NX Specific
+
+1. **Circular dependencies** - Use `nx graph` to visualize and fix
+2. **Not using affected** - Running all tests instead of changed only
+3. **Missing index.ts exports** - Library public API not exposed
+4. **Direct lib imports** - Always use path aliases (`@myorg/*`)
+5. **Skipping library boundaries** - Respect NX module boundaries lint rule
 
 ## Related Patterns
 
@@ -385,3 +827,4 @@ export class ProductCardComponent {
 - [Authentication](./patterns/AUTHENTICATION.md)
 - [Performance](./patterns/PERFORMANCE.md)
 - [API Mocking](./patterns/API_MOCKING.md)
+- [Accessibility](./patterns/ACCESSIBILITY.md)
