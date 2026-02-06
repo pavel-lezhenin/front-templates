@@ -32,25 +32,50 @@ packages/
 ## 🚀 Quick Start
 
 ```bash
-# Clone with submodules
+# Clone WITH submodules
 git clone --recursive <repo-url>
 cd front-templates
 
-# Install dependencies & setup
+# Install root dependencies only (dev tools, husky, prettier, eslint, etc)
 pnpm install
-pnpm prepare
+
+# Each package is independent - work in the package directory
+cd packages/react-fsd-starter
+pnpm install    # Creates independent pnpm-lock.yaml
+pnpm dev        # Starts dev server at http://localhost:3000
+
+# OR in another terminal - work with a different package
+cd packages/angular-standalone-orders
+pnpm install    # Creates independent pnpm-lock.yaml
+pnpm dev        # Starts dev server at http://localhost:4200
 ```
 
-### Use a Template
+### Work With a Package
 
-Each package is independent. Clone directly:
+Each package is a **separate git repository** and must be worked on independently:
 
 ```bash
-git clone <package-repo-url> my-project
-cd my-project
+# 1. Navigate to the package
+cd packages/your-package
+
+# 2. Install its dependencies (creates own pnpm-lock.yaml)
+pnpm install
+
+# 3. Run development server
+pnpm dev
+
+# 4. Build for production
+pnpm build
+
+# 5. Run tests
+pnpm test
+```
+
+**CRITICAL:** Do NOT run `pnpm dev` from root. Each package is completely isolated with its own dependencies.
 pnpm install
 pnpm dev
-```
+
+````
 
 Or copy from monorepo:
 
@@ -60,7 +85,7 @@ cd my-project
 rm -rf .git
 git init
 pnpm install
-```
+````
 
 ## 📐 Architecture
 

@@ -31,28 +31,41 @@ packages/{framework}-{pattern}-{project}[-{role}]
 
 ## Package Isolation (CRITICAL)
 
-- **STRICT: NEVER run commands from monorepo root targeting packages**
-- **STRICT: ALWAYS work inside individual package directories**
-- **STRICT: NO cross-package commands from root**
+**This is a GIT SUBMODULE monorepo, NOT a pnpm workspace.**
 
-### ✅ Correct Workflow:
+Each package in `packages/*` is an independent git repository (submodule).
+
+### ✅ CORRECT Workflow:
+
 ```bash
+# Always navigate INTO the package directory FIRST
 cd packages/specific-package
-pnpm install
-pnpm dev
-pnpm build
-pnpm test
+
+# Then run that package's commands
+pnpm install           # Creates independent pnpm-lock.yaml
+pnpm dev              # Start dev server for THAT package
+pnpm build            # Build THAT package
+pnpm test             # Test THAT package
 ```
 
 ### ❌ FORBIDDEN (breaks isolation):
+
 ```bash
 # From root - NEVER DO THIS
+pnpm install          # Would try to install all packages
+pnpm dev              # Would try to run all packages
 pnpm --filter package-name dev
 pnpm run dev:package-name
-# Any command targeting packages from root
+# Any workspace-style commands from root
 ```
 
-**Each package MUST be completely isolated and self-contained.**
+**ABSOLUTE RULE:** Each package is completely isolated. Root does NOT manage or run package commands.
+
+Each package:
+- Has its own `.git` directory
+- Has its own `pnpm-lock.yaml`
+- Has its own `CI` pipeline
+- Is developed independently
 
 ## Git Submodules
 

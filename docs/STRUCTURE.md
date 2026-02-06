@@ -39,22 +39,29 @@ front-templates/
 │   ├── create-package.mjs           # Scaffold new package
 │   └── submodule-add.mjs            # Add git submodule
 │
-├── package.json
-├── pnpm-workspace.yaml
+├── package.json              # Root (only dev tools + git management)
+├── pnpm-workspace.yaml       # Empty: packages: [] (submodules NOT workspace)
 └── README.md
 ```
 
-## Directories
+## ⚡ CRITICAL: Git Submodules, NOT pnpm Workspace
+
+**This repository uses GIT SUBMODULES, NOT pnpm workspace.**
+
+Root (`front-templates`) is a git repository that **embeds** other git repositories (packages) as submodules.
 
 ### packages/
 
-Git submodules. Each package is:
+**Git submodules** — each package is an **independent git repository**.
 
-- **Independent** git repository
-- **Fully autonomous** — can be cloned and used standalone
-- **Self-contained** — own configs, CI, dependencies
+Each package:
+- ✅ Has its own `.git` directory and git history
+- ✅ Has its own `pnpm-lock.yaml` (fully independent lockfile)
+- ✅ Has its own CI pipeline (`.github/workflows/ci.yml`)
+- ✅ Can be cloned, developed, and deployed **independently**
+- ✅ Fully autonomous — root does **NOT** provide runtime dependencies
 
-Parent does NOT provide runtime dependencies.
+Root's `pnpm-workspace.yaml` must have `packages: []` (empty) because submodules are managed via git, NOT as pnpm workspace.
 
 ### templates/
 
