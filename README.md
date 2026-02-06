@@ -32,22 +32,46 @@ packages/
 ## 🚀 Quick Start
 
 ```bash
-# Clone with submodules
+# Clone WITH submodules
 git clone --recursive <repo-url>
 cd front-templates
 
-# Install dependencies & setup
+# Install root dependencies (dev tools, husky, etc)
+pnpm install --workspace-root
+
+# Each package is independent - work in the package directory
+cd packages/react-fsd-starter
 pnpm install
-pnpm prepare
+pnpm dev
+
+# OR in another terminal
+cd packages/angular-standalone-orders
+pnpm install
+pnpm dev
 ```
 
-### Use a Template
+### Work With a Package
 
-Each package is independent. Clone directly:
+Each package is a **separate git repository** and must be worked on independently:
 
 ```bash
-git clone <package-repo-url> my-project
-cd my-project
+# Navigate to the package
+cd packages/your-package
+
+# Install its dependencies (creates own pnpm-lock.yaml)
+pnpm install
+
+# Run development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Run tests
+pnpm test
+```
+
+**DO NOT** run `pnpm dev` or `pnpm install` from root — each package is autonomous.
 pnpm install
 pnpm dev
 ```
