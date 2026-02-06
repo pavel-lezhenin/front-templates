@@ -74,7 +74,8 @@ pnpm test
 **CRITICAL:** Do NOT run `pnpm dev` from root. Each package is completely isolated with its own dependencies.
 pnpm install
 pnpm dev
-```
+
+````
 
 Or copy from monorepo:
 
@@ -84,7 +85,7 @@ cd my-project
 rm -rf .git
 git init
 pnpm install
-```
+````
 
 ## 📐 Architecture
 
