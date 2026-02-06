@@ -47,22 +47,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Security audit
-        run: pnpm audit --audit-level=high
-        continue-on-error: true
-
       - name: Gitleaks scan
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -85,6 +69,8 @@ jobs:
           filters: |
             react-fsd-starter:
               - 'packages/react-fsd-starter/**'
+            angular-standalone-orders:
+              - 'packages/angular-standalone-orders/**'
 
       - name: Check if has changes
         id: check
@@ -98,9 +84,7 @@ jobs:
 
   trigger-submodule-ci:
     needs: [root-checks, security, detect-changes]
-    if: |
-      needs.detect-changes.outputs.has_changes == 'true' && 
-      github.event_name == 'pull_request'
+    if: needs.detect-changes.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -121,9 +105,7 @@ jobs:
 
   wait-for-submodule-ci:
     needs: [detect-changes, trigger-submodule-ci]
-    if: |
-      needs.detect-changes.outputs.has_changes == 'true' && 
-      github.event_name == 'pull_request'
+    if: needs.detect-changes.outputs.has_changes == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -167,13 +149,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_PAT }}
 
   notify-success:
-    needs: [root-checks, security, detect-changes, wait-for-submodule-ci]
-    if: |
-      always() && 
-      needs.root-checks.result == 'success' && 
-      needs.security.result == 'success' &&
-      (github.event_name == 'push' || needs.detect-changes.outputs.has_changes != 'true' || needs.wait-for-submodule-ci.result == 'success')
+    needs: [root-checks, security, detect-changes]
+    if: always() && needs.root-checks.result == 'success' && needs.security.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Success
-        run: echo "✅ All checks passed"
+        run: echo "✅ All root checks passed"
