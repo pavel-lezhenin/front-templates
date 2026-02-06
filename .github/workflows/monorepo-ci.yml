@@ -69,8 +69,6 @@ jobs:
           filters: |
             react-fsd-starter:
               - 'packages/react-fsd-starter/**'
-            angular-standalone-orders:
-              - 'packages/angular-standalone-orders/**'
 
       - name: Check if has changes
         id: check
