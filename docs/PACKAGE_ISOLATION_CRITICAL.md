@@ -4,16 +4,18 @@
 
 This is a **GIT SUBMODULE monorepo**, not a pnpm workspace.
 
-- **Root**: A git repository containing documentation and configuration
-- **Packages**: Independent git repositories (git submodules)
+- **Root**: A git repository containing dev tools and scripts (ESLint, Prettier, TypeScript, Husky, etc.)
+- **Packages**: Independent git repositories (git submodules) with isolated development
 
 Each package:
 - Has its own `.git` directory
-- Has its own `pnpm-lock.yaml`
+- Has its own `pnpm-lock.yaml` (contains ONLY that package's dependencies)
 - Has its own CI pipeline
 - Is developed and deployed independently
 
-**pnpm-workspace.yaml is EMPTY** (`packages: []`) because packages are managed via git, not pnpm.
+**No pnpm-workspace.yaml** — Packages are managed via git submodules, not as pnpm workspace members. This ensures true isolation:
+- Root `pnpm install` → Installs only root dev tools
+- `cd packages/name && pnpm install` → Installs ONLY that package's dependencies
 
 ---
 

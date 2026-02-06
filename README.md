@@ -36,18 +36,18 @@ packages/
 git clone --recursive <repo-url>
 cd front-templates
 
-# Install root dependencies (dev tools, husky, etc)
-pnpm install --workspace-root
+# Install root dependencies only (dev tools, husky, prettier, eslint, etc)
+pnpm install
 
 # Each package is independent - work in the package directory
 cd packages/react-fsd-starter
-pnpm install
-pnpm dev
+pnpm install    # Creates independent pnpm-lock.yaml
+pnpm dev        # Starts dev server at http://localhost:3000
 
-# OR in another terminal
+# OR in another terminal - work with a different package
 cd packages/angular-standalone-orders
-pnpm install
-pnpm dev
+pnpm install    # Creates independent pnpm-lock.yaml
+pnpm dev        # Starts dev server at http://localhost:4200
 ```
 
 ### Work With a Package
@@ -55,23 +55,23 @@ pnpm dev
 Each package is a **separate git repository** and must be worked on independently:
 
 ```bash
-# Navigate to the package
+# 1. Navigate to the package
 cd packages/your-package
 
-# Install its dependencies (creates own pnpm-lock.yaml)
+# 2. Install its dependencies (creates own pnpm-lock.yaml)
 pnpm install
 
-# Run development server
+# 3. Run development server
 pnpm dev
 
-# Build for production
+# 4. Build for production
 pnpm build
 
-# Run tests
+# 5. Run tests
 pnpm test
 ```
 
-**DO NOT** run `pnpm dev` or `pnpm install` from root — each package is autonomous.
+**CRITICAL:** Do NOT run `pnpm dev` from root. Each package is completely isolated with its own dependencies.
 pnpm install
 pnpm dev
 ```
