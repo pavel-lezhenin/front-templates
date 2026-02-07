@@ -3,7 +3,11 @@ dist/
 build/
 coverage/
 .turbo/
-packages/
+packages/**/node_modules/
+packages/**/dist/
+packages/**/build/
+packages/**/coverage/
+packages/**/.angular/
 docs/
 templates/
 *.lock
