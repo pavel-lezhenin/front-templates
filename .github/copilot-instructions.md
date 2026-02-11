@@ -240,6 +240,61 @@ export async function getUser(id: string): Promise<User | null>
 - **Composition over inheritance**
 - **Immutability preferred**
 
+## Design System & Styling Rules
+
+### CSS Variables (MANDATORY)
+
+**STRICT RULE:** ALL styling values must use CSS variables. NO hardcoded values.
+
+**What requires variables:**
+- ✅ Spacing: `gap`, `margin`, `padding` → `--spacing-xs` through `--spacing-7xl`
+- ✅ Colors: text, backgrounds, borders → `--app-primary`, `--text-primary`, `--surface-primary`, etc.
+- ✅ Typography: `font-size`, `font-weight` → `--font-size-2xs` through `--font-size-6xl`, `--font-weight-light` through `--font-weight-extrabold`
+- ✅ Other: border-radius, shadows, transitions → create corresponding `--` variables
+
+**Available Variables (in `src/styles/variables/`):**
+- `_colors.scss` — theme colors, surfaces, text colors, borders
+- `_typography.scss` — 16 font sizes (2xs-6xl), 6 font weights
+- `_spacing.scss` — spacing scale (xs-7xl) calculated from `--app-spacing` (1rem)
+- `_components.scss` — form fields, buttons, icons sizes
+- `_breakpoints.scss` — documentation for responsive design (do NOT use)
+
+**Adding New Variables:**
+If a value doesn't exist in the system, add it to the appropriate `_*.scss` file before using it.
+
+### Responsive Design (STRICT)
+
+**NEVER use @media queries directly.**
+
+Only use `:host-context()` CSS class selectors. The application dynamically adds classes to `<html>`:
+- `.mobile` — max-width: 600px
+- `.tablet` — max-width: 960px (when not mobile)
+- `.desktop` — min-width: 961px
+
+**Correct pattern:**
+```scss
+.element {
+  /* Base styles for all devices */
+}
+
+/* ============================================
+ * Responsive Styles
+ * ============================================ */
+
+/* Tablet & Desktop Styles */
+:host-context(.tablet) .element,
+:host-context(.desktop) .element {
+  /* Tablet/desktop overrides */
+}
+
+/* Mobile Styles */
+:host-context(.mobile) .element {
+  /* Mobile overrides */
+}
+```
+
+**Why:** Breakpoints are managed in `src/app/app.ts` by `initBreakpoints()`. Using `:host-context()` keeps styling consistent and testable.
+
 ## What NOT to Do
 
 - ❌ Hardcode secrets
@@ -255,3 +310,8 @@ export async function getUser(id: string): Promise<User | null>
 - ❌ **NEVER use --filter commands that break isolation**
 - ❌ **NEVER create new terminals unnecessarily - reuse existing!**
 - ❌ **NEVER forget to check terminal_last_command() before new terminal**
+- ❌ **NEVER hardcode spacing/colors/fonts — always use CSS variables**
+- ❌ **NEVER use @media queries — always use :host-context() classes**
+- ❌ **NEVER add inline styles — use component SCSS files only**
+- ❌ **NEVER create custom breakpoints — use system classes (.mobile, .tablet, .desktop)**
+
