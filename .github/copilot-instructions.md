@@ -268,7 +268,7 @@ If a value doesn't exist in the system, add it to the appropriate `_*.scss` file
 
 Only use `:host-context()` CSS class selectors. The application dynamically adds classes to `<html>`:
 - `.mobile` — max-width: 600px
-- `.tablet` — max-width: 960px (when not mobile)
+- `.tablet` — min-width: 601px and max-width: 960px
 - `.desktop` — min-width: 961px
 
 **Correct pattern:**
@@ -308,6 +308,7 @@ Only use `:host-context()` CSS class selectors. The application dynamically adds
 - ❌ **NEVER EVER run package commands from monorepo root**
 - ❌ **NEVER create workspace-wide dev/build commands**
 - ❌ **NEVER use --filter commands that break isolation**
+- ❌ **NEVER restart/kill an already running dev server or change its port**
 - ❌ **NEVER create new terminals unnecessarily - reuse existing!**
 - ❌ **NEVER forget to check terminal_last_command() before new terminal**
 - ❌ **NEVER hardcode spacing/colors/fonts — always use CSS variables**
