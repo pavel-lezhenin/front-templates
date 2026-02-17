@@ -1,0 +1,13 @@
+{
+  "folders": [{ "path": "packages/angular-standalone-orders" }],
+  "settings": {
+    "typescript.tsdk": "node_modules/typescript/lib",
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "angular.enable-strict-templates": true, 
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/dist": true,
+    },
+  },
+}

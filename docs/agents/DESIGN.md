@@ -24,6 +24,17 @@ Design System Expert specializing in UI consistency and accessibility.
 
 ## Review Checklist
 
+### Design System Compliance (MANDATORY)
+
+- [ ] **STRICT**: All spacing uses CSS variables (`--spacing-xs` through `--spacing-7xl`)
+- [ ] **STRICT**: All colors use CSS variables (`--app-primary`, `--text-*`, `--surface-*`, `--color-*`)
+- [ ] **STRICT**: All font-size uses variables (`--font-size-2xs` through `--font-size-6xl`)
+- [ ] **STRICT**: All font-weight uses variables (`--font-weight-light` through `--font-weight-extrabold`)
+- [ ] **STRICT**: ALL responsive design ONLY uses `:host-context()` classes (`.mobile`, `.tablet`, `.desktop`)
+- [ ] **NEVER**: No @media queries allowed - must be replaced with `:host-context()`
+- [ ] **NEVER**: No hardcoded px, rem, colors, or font values
+- [ ] New values must be added to `src/styles/variables/` before use
+
 ### Design Tokens
 
 - [ ] Colors use semantic tokens
