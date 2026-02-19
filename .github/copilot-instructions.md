@@ -151,6 +151,13 @@ Pages compose components, they don't implement business logic.
 | E2E          | Playwright           |
 | Mocking      | MSW                  |
 
+## Framework-Specific Rule Scope
+
+- Rules marked as **React-only** apply only to packages under `packages/react-*`.
+- Rules marked as **Angular-only** apply only to packages under `packages/angular-*`.
+- Keep framework-specific overrides in package docs: `packages/*/docs/AGENTS.md`.
+- Treat unmarked rules in this file as cross-framework defaults.
+
 ## Code Style
 
 ### Limits (Soft Guidelines)
@@ -163,7 +170,7 @@ Pages compose components, they don't implement business logic.
 
 ```typescript
 // 1. Framework/external
-import React from 'react';
+import { something } from 'some-library';
 
 // 2. Internal aliases (@/)
 import { Button } from '@/shared/ui';
@@ -196,6 +203,8 @@ This repository uses specialized agents:
 
 See [docs/agents/](../docs/agents/) for detailed rules.
 
+For package-specific overrides, also read `packages/*/docs/AGENTS.md` (for example: [packages/angular-standalone-orders/docs/AGENTS.md](../packages/angular-standalone-orders/docs/AGENTS.md)).
+
 ## Testing
 
 ### Coverage
@@ -203,13 +212,18 @@ See [docs/agents/](../docs/agents/) for detailed rules.
 - **Minimum**: 80%
 - **Target**: 90%
 
-### Test Types
+### Test Pyramid (Cross-framework)
 
-| Type      | Tool                   | Location       |
-| --------- | ---------------------- | -------------- |
-| Unit      | Jest/Vitest            | `src/**/*.test.ts` |
-| Component | Testing Library        | `src/**/*.test.tsx` |
-| E2E       | Playwright             | `e2e/`         |
+- Prioritize unit tests for logic.
+- Add targeted component/integration tests for behavior.
+- Keep E2E suites small and deterministic.
+
+### Test Conventions by Framework
+
+| Framework | Unit/Integration                 | Component/UI                            | E2E            |
+| --------- | -------------------------------- | --------------------------------------- | -------------- |
+| React-only | Jest or Vitest                  | React Testing Library (`*.test.tsx`)    | Playwright (`e2e/`) |
+| Angular-only | Jest or Vitest                | Angular TestBed specs (`*.spec.ts`)     | Playwright (`e2e/`) |
 
 ## Documentation
 
@@ -252,7 +266,11 @@ export async function getUser(id: string): Promise<User | null>
 - ✅ Typography: `font-size`, `font-weight` → `--font-size-2xs` through `--font-size-6xl`, `--font-weight-light` through `--font-weight-extrabold`
 - ✅ Other: border-radius, shadows, transitions → create corresponding `--` variables
 
-**Available Variables (in `src/styles/variables/`):**
+### Variable Source (Angular-only)
+
+For Angular packages that use the shared SCSS variable system, source tokens from `src/styles/variables/`.
+
+**Available Variables:**
 - `_colors.scss` — theme colors, surfaces, text colors, borders
 - `_typography.scss` — 16 font sizes (2xs-6xl), 6 font weights
 - `_spacing.scss` — spacing scale (xs-7xl) calculated from `--app-spacing` (1rem)
@@ -262,7 +280,9 @@ export async function getUser(id: string): Promise<User | null>
 **Adding New Variables:**
 If a value doesn't exist in the system, add it to the appropriate `_*.scss` file before using it.
 
-### Responsive Design (STRICT)
+### Responsive Design (Angular-only, STRICT)
+
+These responsive rules apply only to Angular packages.
 
 **NEVER use @media queries directly.**
 
@@ -282,16 +302,41 @@ Only use `:host-context()` CSS class selectors. The application dynamically adds
  * ============================================ */
 
 /* Tablet & Desktop Styles */
-:host-context(.tablet) .element,
-:host-context(.desktop) .element {
-  /* Tablet/desktop overrides */
+:host-context(.tablet),
+:host-context(.desktop) {
+  .element {
+    /* Tablet/desktop overrides */
+  }
+
+  .elementSecondary {
+    /* Grouped tablet/desktop overrides */
+  }
 }
 
 /* Mobile Styles */
-:host-context(.mobile) .element {
-  /* Mobile overrides */
+:host-context(.mobile) {
+  .element {
+    /* Mobile overrides */
+  }
+
+  .elementSecondary {
+    /* Grouped mobile overrides */
+  }
+}
+
+/* ============================================
+ * Theme Styles
+ * ============================================ */
+
+/* Dark Mode */
+:host-context(.dark-mode) {
+  .element {
+    /* Dark mode overrides */
+  }
 }
 ```
+
+The `.dark-mode` class is applied to `<html>` by `initDarkMode()` in `src/app/app.ts`, mirroring the same pattern as breakpoint classes. It reads `prefers-color-scheme` from the OS but allows programmatic override.
 
 **Why:** Breakpoints are managed in `src/app/app.ts` by `initBreakpoints()`. Using `:host-context()` keeps styling consistent and testable.
 
@@ -312,7 +357,8 @@ Only use `:host-context()` CSS class selectors. The application dynamically adds
 - ❌ **NEVER create new terminals unnecessarily - reuse existing!**
 - ❌ **NEVER forget to check terminal_last_command() before new terminal**
 - ❌ **NEVER hardcode spacing/colors/fonts — always use CSS variables**
-- ❌ **NEVER use @media queries — always use :host-context() classes**
-- ❌ **NEVER add inline styles — use component SCSS files only**
-- ❌ **NEVER create custom breakpoints — use system classes (.mobile, .tablet, .desktop)**
+- ❌ **(Angular only) NEVER use @media queries — always use :host-context() classes**
+- ❌ **(Angular only) NEVER add inline styles — use component SCSS files only**
+- ❌ **(Angular only) NEVER create custom breakpoints — use system classes (.mobile, .tablet, .desktop)**
+- ❌ **NEVER make git commits on your own — only commit when explicitly instructed by the user**
 
