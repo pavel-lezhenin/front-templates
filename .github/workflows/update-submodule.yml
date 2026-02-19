@@ -1,0 +1,96 @@
+# Auto Update Submodule Reference
+#
+# Triggered by repository_dispatch from a submodule repo after its main branch
+# is updated. Automatically bumps the submodule pointer and opens a PR.
+#
+# Requires: GH_PAT secret with `repo` scope on this repository.
+
+name: Auto Update Submodule
+
+on:
+  repository_dispatch:
+    types: [submodule-updated]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    name: Bump ${{ github.event.client_payload.submodule }} reference
+    runs-on: ubuntu-latest
+
+    env:
+      SUBMODULE: ${{ github.event.client_payload.submodule }}
+      SHA: ${{ github.event.client_payload.sha }}
+      SHORT_SHA: ${{ github.event.client_payload.sha != '' && format('{0}', github.event.client_payload.sha) || 'unknown' }}
+
+    steps:
+      - name: Checkout parent repo with submodules
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update submodule to new commit
+        run: |
+          cd packages/${{ env.SUBMODULE }}
+          git fetch origin main
+          git checkout ${{ env.SHA }}
+          cd ../..
+          echo "Submodule ${{ env.SUBMODULE }} updated to ${{ env.SHA }}"
+
+      - name: Check if anything changed
+        id: diff
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No changes detected — submodule reference already up to date"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create feature branch and commit
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          SHORT="${{ env.SHA }}"
+          SHORT="${SHORT:0:7}"
+          BRANCH="chore/auto-update-${{ env.SUBMODULE }}-${SHORT}"
+          echo "BRANCH=${BRANCH}" >> $GITHUB_ENV
+
+          git checkout -b "${BRANCH}"
+          git add packages/${{ env.SUBMODULE }}
+          git commit -m "chore: auto-update ${{ env.SUBMODULE }} submodule to ${SHORT}
+
+          Triggered by: ${{ github.event.client_payload.run_url }}
+          Submodule SHA: ${{ env.SHA }}"
+
+          git push origin "${BRANCH}"
+
+      - name: Create Pull Request
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          gh pr create \
+            --title "chore: auto-update ${{ env.SUBMODULE }} submodule" \
+            --body "## Automatic Submodule Update
+
+          **Submodule:** \`${{ env.SUBMODULE }}\`
+          **New SHA:** \`${{ env.SHA }}\`
+          **Source run:** ${{ github.event.client_payload.run_url }}
+
+          This PR was created automatically after \`${{ env.SUBMODULE }}\` was updated on \`main\`." \
+            --base main \
+            --head "${{ env.BRANCH }}" \
+            --label "chore,automated"
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+
+      - name: Skip (already up to date)
+        if: steps.diff.outputs.changed == 'false'
+        run: echo "⏭️ Submodule reference already points to ${{ env.SHA }}, nothing to do."
