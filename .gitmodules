@@ -3,4 +3,4 @@
 	url = https://github.com/pavel-lezhenin/react-fsd-starter.git
 [submodule "packages/angular-standalone-orders"]
 	path = packages/angular-standalone-orders
-	url = ./packages/angular-standalone-orders
+	url = https://github.com/pavel-lezhenin/angular-standalone-orders.git
