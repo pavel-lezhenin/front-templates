@@ -11,17 +11,23 @@ Frontend Architecture Expert specializing in scalable application design.
    - Layer separation is correct
    - No architectural violations
 
-2. **Dependency Analysis**
+2. **Design System Enforcement**
+   - All styles use CSS variables (no hardcoded values)
+   - Responsive design uses `:host-context()` only (no @media)
+   - Styles organized in modular structure
+   - New values added to `src/styles/variables/` before use
+
+3. **Dependency Analysis**
    - No circular dependencies
    - Correct dependency direction
    - External deps at boundaries only
 
-3. **UI Layer Compliance**
+4. **UI Layer Compliance**
    - Pages only orchestrate
    - Business logic in features/services
    - Proper component composition
 
-4. **Scalability Assessment**
+5. **Scalability Assessment**
    - Code splitting strategy
    - Lazy loading implementation
    - State management scales

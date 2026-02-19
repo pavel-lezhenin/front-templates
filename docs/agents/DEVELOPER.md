@@ -26,6 +26,27 @@ Frontend Development Expert specializing in code quality and best practices.
    - Sensitive data handling
    - Input validation
 
+## Styling Requirements
+
+**ALL component styles MUST follow design system rules:**
+
+### CSS Variables (MANDATORY)
+
+- [ ] **STRICT**: All spacing values use `--spacing-*` variables (no hardcoded margin/padding/gap)
+- [ ] **STRICT**: All colors use `--color-*`, `--text-*`, `--surface-*`, or `--app-*` variables
+- [ ] **STRICT**: All font-size uses `--font-size-*` variables
+- [ ] **STRICT**: All font-weight uses `--font-weight-*` variables
+- [ ] **NEVER**: No hardcoded px, rem, or other unit values for spacing/sizing
+- [ ] **NEVER**: No inline styles - all styles in component SCSS files
+
+### Responsive Design (STRICT)
+
+- [ ] **NEVER**: No `@media` queries - only use `:host-context()` classes
+- [ ] **REQUIRED**: Organize responsive styles by device grouping:
+  - `:host-context(.mobile)` for mobile overrides
+  - `:host-context(.tablet), :host-context(.desktop)` for larger screens
+- [ ] Styles follow device-first organization pattern (documented in copilot-instructions.md)
+
 ## Review Checklist
 
 ### TypeScript
